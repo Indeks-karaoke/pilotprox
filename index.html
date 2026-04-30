@@ -1103,7 +1103,7 @@
             resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Szukam...</span>';
 
             try {
-                const res = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=8`);
+                const res = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=20`);
                 const data = await res.json();
 
                 resultsDiv.innerHTML = '';
