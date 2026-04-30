@@ -17,7 +17,7 @@
             user-select: none;
             display: flex;
             flex-direction: column;
-            height: 100dvh; 
+            height: 100dvh;
             box-sizing: border-box;
             overflow: hidden;
         }
@@ -209,8 +209,13 @@
             font-weight: bold;
         }
 
-        .badge-yt { background: #c62828; }
-        .badge-ising { background: #0288d1; }
+        .badge-yt {
+            background: #c62828;
+        }
+
+        .badge-ising {
+            background: #0288d1;
+        }
 
         .tiny-btn {
             background: #444;
@@ -264,20 +269,20 @@
 
         /* MODALE */
         .modal-box {
-            background: #1a1a1a; 
-            width: 100%; 
-            max-width: 450px; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-            display: flex; 
-            flex-direction: column; 
+            background: #1a1a1a;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
             max-height: 85dvh;
             overflow: hidden;
         }
-        
+
         .modal-scroll-area {
-            flex: 1; 
-            overflow-y: auto; 
+            flex: 1;
+            overflow-y: auto;
             padding: 15px;
         }
     </style>
@@ -307,7 +312,8 @@
                 style="position: absolute; right: 10px; top: 12px; font-size: 24px; color: #888; cursor: pointer; display: none;"
                 onclick="clearSearch()">✖</span>
         </div>
-        <div id="searchStatus" style="font-size: 13px; color: #888; margin-bottom: 15px; text-align: center;">⏳ Pobieranie bazy utworów...</div>
+        <div id="searchStatus" style="font-size: 13px; color: #888; margin-bottom: 15px; text-align: center;">⏳
+            Pobieranie bazy utworów...</div>
         <ul id="searchListRemote" style="list-style: none; padding: 0; margin: 0; max-height: 50dvh; overflow-y: auto;">
         </ul>
     </div>
@@ -336,7 +342,8 @@
             </label>
         </div>
 
-        <div style="display: flex; justify-content: space-between; background: #222; padding: 8px; border-radius: 12px;">
+        <div
+            style="display: flex; justify-content: space-between; background: #222; padding: 8px; border-radius: 12px;">
             <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Intro')" title="Intro">🎵</button>
             <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Outro')" title="Outro">🏁</button>
             <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Outro2')" title="Outro 2">🎬</button>
@@ -374,11 +381,15 @@
         </div>
 
         <div id="loteriaContainer" style="display: none; width: 100%; margin-top: 20px;">
-            <button class="btn" style="background: #e91e63; font-weight: bold; width: 100%; padding: 20px; font-size: 24px; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4); text-transform: uppercase;" onclick="sendCmd('start_lottery')">
+            <button class="btn"
+                style="background: #e91e63; font-weight: bold; width: 100%; padding: 20px; font-size: 24px; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4); text-transform: uppercase;"
+                onclick="sendCmd('start_lottery')">
                 🎉 Losuj Zwycięzcę
             </button>
-            <div class="label-small" style="margin-top: 25px; text-align: center; color: #bbb;">🏆 Ostatni Zwycięzcy:</div>
-            <ul id="winnersListRemote" style="list-style: none; padding: 0; margin-top: 10px; max-height: 35dvh; overflow-y: auto; text-align: left;">
+            <div class="label-small" style="margin-top: 25px; text-align: center; color: #bbb;">🏆 Ostatni Zwycięzcy:
+            </div>
+            <ul id="winnersListRemote"
+                style="list-style: none; padding: 0; margin-top: 10px; max-height: 35dvh; overflow-y: auto; text-align: left;">
                 <li style="text-align: center; color: #777; padding: 10px;">Czekam na dane...</li>
             </ul>
         </div>
@@ -401,7 +412,7 @@
 
     <div id="overlayModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
-        
+
         <div class="modal-box" style="border-color: #9c27b0;">
             <div class="modal-scroll-area">
                 <textarea id="ovText" placeholder="Napis (dowolny tekst)..."
@@ -420,13 +431,16 @@
                 <div style="display:flex; align-items: center; gap: 5px; margin-bottom:15px;">
                     <input type="text" id="ovImg" placeholder="Lub własny link do GIFa/Obrazka (https://...)"
                         style="flex:1; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:10px; box-sizing:border-box; font-size: 12px;">
-                    <label id="uploadImgBtn" style="background: #2196F3; color: white; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; text-align: center; white-space: nowrap;">
-                        <input type="file" id="imgUploadInput" accept="image/*" style="display: none;" onchange="uploadImageToImgur(this.files[0])">
+                    <label id="uploadImgBtn"
+                        style="background: #2196F3; color: white; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; text-align: center; white-space: nowrap;">
+                        <input type="file" id="imgUploadInput" accept="image/*" style="display: none;"
+                            onchange="uploadImageToImgBB(this.files[0])">
                         📸 Wstaw z galerii
                     </label>
                 </div>
 
-                <div style="background:#222; padding:12px; border-radius:8px; margin-bottom:15px; border: 1px solid #444;">
+                <div
+                    style="background:#222; padding:12px; border-radius:8px; margin-bottom:15px; border: 1px solid #444;">
                     <select id="tvWindowMode"
                         onchange="document.getElementById('trackpadControls').style.display = this.value === 'window' ? 'block' : 'none';"
                         style="width:100%; background:#1a1a1a; color:white; border:1px solid #555; border-radius:6px; padding:8px; margin-bottom:10px; font-weight:bold;">
@@ -435,7 +449,8 @@
                     </select>
 
                     <div id="trackpadControls">
-                        <select id="tvAspect" onchange="document.getElementById('posArea').style.aspectRatio = this.value;"
+                        <select id="tvAspect"
+                            onchange="document.getElementById('posArea').style.aspectRatio = this.value;"
                             style="width:100%; background:#1a1a1a; color:#aaa; border:1px solid #555; border-radius:6px; padding:6px; margin-bottom:15px; font-size: 12px;">
                             <option value="16/9">📺 Proporcje TV: Panoramiczny (16:9)</option>
                             <option value="4/3">📺 Proporcje TV: Kwadratowy (4:3)</option>
@@ -443,14 +458,16 @@
 
                         <div style="display:flex; gap:10px; margin-bottom:10px; align-items: flex-end;">
                             <div style="flex:1;">
-                                <label style="font-size:10px; color:#aaa;">Szerokość: <span id="wDisp">100%</span></label>
-                                <input type="range" id="winW" min="10" max="100" value="100" oninput="updateWinPreview()"
-                                    style="width:100%; accent-color:#bb86fc;">
+                                <label style="font-size:10px; color:#aaa;">Szerokość: <span
+                                        id="wDisp">100%</span></label>
+                                <input type="range" id="winW" min="10" max="100" value="100"
+                                    oninput="updateWinPreview()" style="width:100%; accent-color:#bb86fc;">
                             </div>
                             <div style="flex:1;">
-                                <label style="font-size:10px; color:#aaa;">Wysokość: <span id="hDisp">100%</span></label>
-                                <input type="range" id="winH" min="10" max="100" value="100" oninput="updateWinPreview()"
-                                    style="width:100%; accent-color:#bb86fc;">
+                                <label style="font-size:10px; color:#aaa;">Wysokość: <span
+                                        id="hDisp">100%</span></label>
+                                <input type="range" id="winH" min="10" max="100" value="100"
+                                    oninput="updateWinPreview()" style="width:100%; accent-color:#bb86fc;">
                             </div>
                             <button onclick="autoFitWindow()" title="Dopasuj wysokość do proporcji treści"
                                 style="background:#bb86fc; color:#000; border:none; border-radius:6px; padding:0 12px; height: 32px; font-weight:bold; cursor:pointer;">📏
@@ -468,34 +485,47 @@
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:10px;">
-                    <div style="display:flex; gap:8px; align-items:center; background:#222; padding:10px; border-radius:8px;">
+                    <div
+                        style="display:flex; gap:8px; align-items:center; background:#222; padding:10px; border-radius:8px;">
                         <span style="flex:1; font-size:13px; color:#ddd; font-weight:bold;">📺 Ekran 2 (TV)</span>
-                        <button onclick="sendOverlay(true, 'tv')" style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️ Pokaż</button>
-                        <button onclick="sendOverlay(false, 'tv')" style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">✖ Ukryj</button>
+                        <button onclick="sendOverlay(true, 'tv')"
+                            style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️
+                            Pokaż</button>
+                        <button onclick="sendOverlay(false, 'tv')"
+                            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">✖
+                            Ukryj</button>
                     </div>
-                    <div style="display:flex; gap:8px; align-items:center; background:#222; padding:10px; border-radius:8px;">
+                    <div
+                        style="display:flex; gap:8px; align-items:center; background:#222; padding:10px; border-radius:8px;">
                         <span style="flex:1; font-size:13px; color:#ddd; font-weight:bold;">🖥️ Ekran 3 (Laptop)</span>
-                        <button onclick="sendOverlay(true, 'roboczy')" style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️ Pokaż</button>
-                        <button onclick="sendOverlay(false, 'roboczy')" style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">✖ Ukryj</button>
+                        <button onclick="sendOverlay(true, 'roboczy')"
+                            style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️
+                            Pokaż</button>
+                        <button onclick="sendOverlay(false, 'roboczy')"
+                            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">✖
+                            Ukryj</button>
                     </div>
                 </div>
             </div>
 
             <div style="padding: 15px; border-top: 1px solid #333; background: #1a1a1a;">
                 <button onclick="document.getElementById('overlayModal').style.display='none'"
-                    style="width:100%; background:#333; color:#fff; font-weight:bold; border:none; padding:12px; border-radius: 8px; font-size:16px; cursor:pointer;">✖ Zamknij panel ekranu</button>
+                    style="width:100%; background:#333; color:#fff; font-weight:bold; border:none; padding:12px; border-radius: 8px; font-size:16px; cursor:pointer;">✖
+                    Zamknij panel ekranu</button>
             </div>
         </div>
     </div>
 
     <div id="soundsModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
-        
+
         <div class="modal-box" style="border-color: #03dac6;">
             <div style="padding: 15px 15px 0 15px;">
-                <div style="display: flex; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                <div
+                    style="display: flex; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 8px; border: 1px solid #333;">
                     <span style="font-size: 18px;">🔈</span>
-                    <input type="range" id="volSlider" min="0" max="100" value="100" style="flex: 1; accent-color: #03dac6;" oninput="changeVolume(this.value)">
+                    <input type="range" id="volSlider" min="0" max="100" value="100"
+                        style="flex: 1; accent-color: #03dac6;" oninput="changeVolume(this.value)">
                     <span style="font-size: 18px;">🔊</span>
                 </div>
             </div>
@@ -509,7 +539,8 @@
 
                 <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
 
-                <label style="font-size:12px; color:#03dac6; margin-bottom:10px; display:block; font-weight:bold;">➕ DODAJ WŁASNY DŹWIĘK DO BAZY</label>
+                <label style="font-size:12px; color:#03dac6; margin-bottom:10px; display:block; font-weight:bold;">➕
+                    DODAJ WŁASNY DŹWIĘK DO BAZY</label>
                 <input type="text" id="newSoundTitle" placeholder="Krótka nazwa (np. Bęben)"
                     style="width:100%; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:10px; margin-bottom:8px; box-sizing:border-box; font-size:12px;">
                 <input type="text" id="newSoundUrl" placeholder="Link (http... .mp3)"
@@ -523,7 +554,8 @@
 
             <div style="padding: 15px; border-top: 1px solid #333; background: #1a1a1a;">
                 <button onclick="document.getElementById('soundsModal').style.display='none'"
-                    style="width:100%; background:#333; color:#fff; font-weight:bold; border:none; padding:12px; border-radius: 8px; font-size:16px; cursor:pointer;">✖ Zamknij panel</button>
+                    style="width:100%; background:#333; color:#fff; font-weight:bold; border:none; padding:12px; border-radius: 8px; font-size:16px; cursor:pointer;">✖
+                    Zamknij panel</button>
             </div>
         </div>
     </div>
@@ -533,7 +565,7 @@
         // KONFIGURACJA API
         // =====================================
         const APPS_SCRIPT_PROXY_URL = 'https://script.google.com/macros/s/AKfycbzEyimmaojILmadkGvOoGEX0VsSxzucNWAwencvaYxhr_EdhjG1N2Vs0G2q6OZQkLEstw/exec';
-        
+
         // Client ID dla anonimowych uploadów do Imgur API
         const IMGUR_CLIENT_ID = 'e729a5ec9a79a5c';
 
@@ -555,7 +587,7 @@
 
         // --- OBSŁUGA GŁOŚNOŚCI ---
         const savedVol = localStorage.getItem('sfx_vol');
-        if(savedVol !== null) {
+        if (savedVol !== null) {
             document.getElementById('volSlider').value = savedVol * 100;
         }
         function changeVolume(val) {
@@ -913,56 +945,57 @@
         // LOGIKA WGRYWANIA OBRAZKA (IMGUR API)
         // ===============================================
 
-        async function uploadImageToImgur(file) {
+        // Podmień to w atrybucie onchange przycisku w HTML!
+        // <input type="file" id="imgUploadInput" accept="image/*" style="display: none;" onchange="uploadImageToImgBB(this.files[0])">
+
+        async function uploadImageToImgBB(file) {
             if (!file) return;
+
+            // TUTAJ WKLEJ SWÓJ KLUCZ Z API.IMGBB.COM
+            const API_KEY = 'TUTAJ_WKLEJ_TWOJ_KLUCZ_API';
 
             const btnLabel = document.getElementById('uploadImgBtn');
             const imgInputUrl = document.getElementById('ovImg');
 
-            // Wizualny status ładowania
             btnLabel.style.background = '#888';
             btnLabel.innerHTML = '⏳ Przesyłam...';
-            btnLabel.style.pointerEvents = 'none'; 
+            btnLabel.style.pointerEvents = 'none';
 
             const formData = new FormData();
             formData.append("image", file);
 
             try {
-                const response = await fetch("https://api.imgur.com/3/image", {
+                // ImgBB ma bardzo prostą autoryzację prosto w URL
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
                     method: "POST",
-                    headers: {
-                        "Authorization": `Client-ID ${IMGUR_CLIENT_ID}`
-                    },
                     body: formData
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Odmowa dostępu do serwera (Kod: ${response.status})`);
+                }
 
                 const data = await response.json();
 
                 if (data.success) {
-                    // Wpisanie publicznego linku z Imgura do pola input
-                    imgInputUrl.value = data.data.link;
-                    
-                    // Pokazanie sukcesu i ewentualne wibracje
+                    // ImgBB zwraca link pod data.data.url
+                    imgInputUrl.value = data.data.url;
                     btnLabel.style.background = '#4CAF50';
                     btnLabel.innerHTML = '✅ Sukces!';
                     if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
-
-                    // Automatyczne dopasowanie proporcji okna jeśli to możliwe
-                    setTimeout(autoFitWindow, 500); 
-
+                    setTimeout(autoFitWindow, 500);
                 } else {
-                    throw new Error("Imgur API odrzuciło plik.");
+                    throw new Error("Serwer odrzucił plik.");
                 }
             } catch (err) {
-                console.error(err);
-                alert("Błąd podczas wgrywania pliku. Spróbuj ponownie lub użyj linku z internetu.");
+                console.error("Błąd ImgBB:", err);
+                alert("Błąd podczas wgrywania: " + err.message);
                 btnLabel.style.background = '#f44336';
                 btnLabel.innerHTML = '❌ Błąd';
             } finally {
-                // Powrót przycisku do stanu pierwotnego po 3 sekundach
                 setTimeout(() => {
                     btnLabel.style.background = '#2196F3';
-                    btnLabel.innerHTML = '<input type="file" id="imgUploadInput" accept="image/*" style="display: none;" onchange="uploadImageToImgur(this.files[0])">📸 Wstaw z galerii';
+                    btnLabel.innerHTML = '<input type="file" id="imgUploadInput" accept="image/*" style="display: none;" onchange="uploadImageToImgBB(this.files[0])">📸 Wstaw z galerii';
                     btnLabel.style.pointerEvents = 'auto';
                 }, 3000);
             }
