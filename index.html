@@ -653,6 +653,11 @@
                     const isVisible = el.style.display === 'block';
                     el.style.display = isVisible ? 'none' : 'block';
                     if (btn) btn.classList.toggle('active', !isVisible);
+
+                    // --- DODANO: Odświeżanie skrzynki tylko przy jej ręcznym otwarciu ---
+                    if (tabName === 'orders' && !isVisible) {
+                        fetchBackgroundData();
+                    }
                 } else {
                     if (el) el.style.display = 'none';
                     if (btn) btn.classList.remove('active');
@@ -691,8 +696,36 @@
             }
         }
 
+       function toggleTab(tabName) {
+            const tabs = ['orders', 'search', 'list', 'controls'];
+            tabs.forEach(t => {
+                const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const btn = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (t === tabName) {
+                    const isVisible = el.style.display === 'block';
+                    el.style.display = isVisible ? 'none' : 'block';
+                    if (btn) btn.classList.toggle('active', !isVisible);
+
+                    // --- DODANO: Odświeżanie skrzynki tylko przy jej ręcznym otwarciu ---
+                    if (tabName === 'orders' && !isVisible) {
+                        fetchBackgroundData();
+                    }
+                } else {
+                    if (el) el.style.display = 'none';
+                    if (btn) btn.classList.remove('active');
+                }
+            });
+        }
+
         async function fetchBackgroundData() {
             if (APPS_SCRIPT_PROXY_URL.includes('Wklej_Tutaj')) return;
+
+            const list = document.getElementById('ordersListRemote');
+            // Pokaż wskaźnik ładowania, gdy użytkownik ręcznie otworzy kartę
+            if (list && list.parentElement.style.display === 'block') {
+                list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">⏳ Odświeżanie zamówień...</div>';
+            }
+
             try {
                 const res = await fetch(APPS_SCRIPT_PROXY_URL);
                 const gist = await res.json();
@@ -715,32 +748,61 @@
 
                     let uniqueOrders = {};
                     data.forEach(o => {
-                        if ((now - (o.id || o.timestamp)) <= eightHoursInMs && !o.zagrane) {
+                        // Sprawdzamy limit 8 godzin (wpuszczamy też te otworzone!)
+                        if ((now - (o.id || o.timestamp)) <= eightHoursInMs) {
                             let key = o.tytul.toLowerCase().trim();
-                            if (!uniqueOrders[key]) uniqueOrders[key] = o;
+                            // Dajemy priorytet nieotworzonym utworom (nie nadpisujemy ich statusem "zagrane")
+                            if (!uniqueOrders[key] || !o.zagrane) {
+                                uniqueOrders[key] = o;
+                            }
                         }
                     });
 
-                    const list = document.getElementById('ordersListRemote');
-                    list.innerHTML = '';
-                    let orderCount = 0;
+                    if (list) {
+                        list.innerHTML = '';
+                        let orderCount = 0;
 
-                    Object.values(uniqueOrders).forEach(o => {
-                        orderCount++;
-                        const card = document.createElement('div');
-                        card.className = 'clickable-item interactive';
-                        card.innerHTML = `<div class="order-title">${o.tytul}</div><span class="order-singer">🎤 ${o.imie || 'Wybór własny'}</span>`;
-                        card.onclick = () => sendPlayOrder(card, o.tytul);
-                        list.appendChild(card);
-                    });
+                        Object.values(uniqueOrders).forEach(o => {
+                            orderCount++;
+                            const card = document.createElement('div');
+                            card.className = 'clickable-item interactive';
+                            
+                            // Kolorowanie kart zależnie od statusu
+                            const isPlayed = o.zagrane === true;
+                            card.style.background = isPlayed ? '#fbc02d' : '#ffffff'; // Żółty dla otworzonych, Biały dla nowych
+                            card.style.border = isPlayed ? '2px solid #f57f17' : '2px solid #ccc';
+                            
+                            // Wymuszenie czarnego koloru czcionki (żeby było czytelnie na jasnych tłach)
+                            card.style.color = '#000000';
 
-                    if (orderCount === 0) list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">📭 Brak niezrealizowanych zamówień.</div>';
+                            // Pobieranie narodowości (jeśli jest)
+                            const nat = o.narodowosc ? ` | 🌍 ${o.narodowosc}` : '';
+
+                            card.innerHTML = `
+                                <div class="order-title" style="color: #000; font-weight: 900;">${o.tytul}</div>
+                                <span class="order-singer" style="color: #444; font-weight: bold;">🎤 ${o.imie || 'Wybór własny'}${nat}</span>
+                            `;
+                            
+                            card.onclick = () => {
+                                sendCmd('play_order', o.tytul);
+                                // Efekt kliknięcia (ciemnozielony na chwilę)
+                                card.style.background = '#1b5e20';
+                                card.innerHTML = `<div class="order-title" style="color: #fff; font-weight: 900;">Wysyłanie...</div>`;
+                                setTimeout(() => { toggleTab(''); }, 600);
+                            };
+                            
+                            list.appendChild(card);
+                        });
+
+                        if (orderCount === 0) list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">📭 Brak zamówień z ostatnich 8 godzin.</div>';
+                    }
                 }
-            } catch (e) { }
+            } catch (e) {
+                if (list) list.innerHTML = '<div style="text-align: center; color: #f44336; padding: 20px;">❌ Błąd pobierania danych.</div>';
+            }
         }
 
-        fetchBackgroundData();
-        setInterval(fetchBackgroundData, 10000);
+        fetchBackgroundData(); // Pobiera dane raz na starcie
 
         function clearSearch() {
             const input = document.getElementById('searchInputRemote');
