@@ -1163,32 +1163,59 @@
             }
         }
 
-        function sendOverlay(active, target) {
-            if (!myPin) { location.reload(); return; }
+      function sendOverlay(active, target) {
+    if (!myPin) { location.reload(); return; }
 
-            const text = document.getElementById('ovText').value.trim();
-            const textColor = document.getElementById('ovTextColor').value;
-            const textBlink = document.getElementById('ovTextBlink').checked;
+    const text = document.getElementById('ovText').value.trim();
+    const textColor = document.getElementById('ovTextColor').value;
+    const textBlink = document.getElementById('ovTextBlink').checked;
+    
+    const img = document.getElementById('ovImg').value.trim();
+    const w = document.getElementById('winW').value;
+    const h = document.getElementById('winH').value;
+    const mode = document.getElementById('tvWindowMode').value;
 
-            const img = document.getElementById('ovImg').value.trim();
-            const w = document.getElementById('winW').value;
-            const h = document.getElementById('winH').value;
-            const mode = document.getElementById('tvWindowMode').value;
+    const payload = {
+        active: active,
+        text: text,
+        textColor: textColor,
+        textBlink: textBlink,
+        imageUrl: img,
+        win: { mode: mode, w: parseInt(w), h: parseInt(h), x: relX, y: relY }
+    };
 
-            const payload = {
-                active: active,
-                text: text,
-                textColor: textColor,
-                textBlink: textBlink,
-                imageUrl: img,
-                win: { mode: mode, w: parseInt(w), h: parseInt(h), x: relX, y: relY }
+    if (target === 'roboczy') {
+        // Ekran roboczy zostaje po staremu (jedno główne okno)
+        sendCmd('custom_overlay', payload);
+    } 
+    else if (target === 'tv') {
+        if (active) {
+            // Generujemy unikalne ID dla nowego okna
+            const overlayId = Date.now();
+            sendCmd('tv_overlay_open', { id: overlayId, payload: payload });
+            
+            // Tworzymy dynamiczny przycisk do usunięcia TEGO konkretnego okna
+            const container = document.getElementById('dynamic-tv-buttons');
+            const btn = document.createElement('button');
+            btn.style.cssText = "background:#f44336; color:white; border:none; padding:10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer; text-align:left; display:flex; justify-content:space-between;";
+            
+            // Tworzymy etykietę: Pokazujemy kawałek tekstu lub info że to obrazek
+            const label = text ? text.substring(0, 15) + (text.length > 15 ? '...' : '') : 'Obrazek / GIF';
+            btn.innerHTML = `<span>✖ Zamknij: "${label}"</span>`;
+            
+            // Kliknięcie usuwa okno i sam przycisk
+            btn.onclick = () => {
+                sendCmd('tv_overlay_close', { id: overlayId });
+                btn.remove();
+                if (navigator.vibrate) navigator.vibrate(20);
             };
-
-            if (target === 'roboczy') sendCmd('custom_overlay', payload);
-            else if (target === 'tv') sendCmd('tv_overlay', payload);
-
-            if (navigator.vibrate) navigator.vibrate(20);
+            
+            container.appendChild(btn);
         }
+    }
+
+    if (navigator.vibrate) navigator.vibrate(20);
+}
 
         async function searchGifs() {
             const query = document.getElementById('gifSearchQuery').value.trim();
