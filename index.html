@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pilot DJ'a - Karaoke</title>
+    <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -20,6 +22,80 @@
             height: 100dvh;
             box-sizing: border-box;
             overflow: hidden;
+        }
+
+        /* EKRAN LOGOWANIA */
+        #loginScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #121212;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .login-box h2 {
+            color: #bb86fc;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 15px;
+            background: #2c2c2c;
+            border: 2px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            text-align: center;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .login-box input:focus {
+            border-color: #bb86fc;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 15px;
+            background: #bb86fc;
+            color: #000;
+            font-weight: bold;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        .login-box button:active {
+            background: #9965f4;
+            transform: scale(0.95);
+        }
+
+        .login-box button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* GÓRNY PASEK ZAKŁADEK */
@@ -51,6 +127,12 @@
         .top-btn.active {
             background: #4CAF50;
             border-color: #4CAF50;
+        }
+
+        .logout-btn {
+            background: #b71c1c;
+            border-color: #b71c1c;
+            max-width: 50px;
         }
 
         /* ROZWIJANE PANELE */
@@ -290,151 +372,167 @@
 
 <body>
 
-    <div id="topBar" class="top-bar">
-        <button id="btnTabOrders" class="top-btn" onclick="toggleTab('orders')" title="Zamówienia">📦</button>
-        <button id="btnTabSearch" class="top-btn" onclick="toggleTab('search')" title="Wyszukiwarka">🔍</button>
-        <button id="btnTabList" class="top-btn" onclick="toggleTab('list')" title="Otwarte Karty">📑</button>
-        <button id="btnTabControls" class="top-btn" onclick="toggleTab('controls')" title="Sterowanie">🎛️</button>
-    </div>
-
-    <div id="tabOrders" class="panel" style="max-height: 60dvh; overflow-y: auto;">
-        <div id="ordersListRemote" style="text-align: left;">
-            <div style="text-align: center; color: #aaa; padding: 20px;">⏳ Uruchamianie połączenia...</div>
+    <!-- EKRAN LOGOWANIA -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>Pilot DJ'a</h2>
+            <input type="email" id="djEmailInput" placeholder="E-mail DJ-a" autocomplete="username">
+            <input type="password" id="djPasswordInput" placeholder="Hasło" autocomplete="current-password">
+            <button id="loginBtn" onclick="loginDJ()">Zaloguj się</button>
+            <div id="loginError" style="color: #ff5252; margin-top: 15px; font-size: 14px; display: none;">Błędny e-mail
+                lub hasło!</div>
         </div>
     </div>
 
-    <div id="tabSearch" class="panel">
-        <div style="position: relative; margin-bottom: 5px;">
-            <input type="text" id="searchInputRemote" placeholder="Szukaj w bazie..."
-                style="width: 100%; padding: 15px; padding-right: 40px; font-size: 18px; border-radius: 8px; border: none; box-sizing: border-box;"
-                oninput="handleLocalSearch(this.value)">
-            <span id="clearSearchBtn"
-                style="position: absolute; right: 10px; top: 12px; font-size: 24px; color: #888; cursor: pointer; display: none;"
-                onclick="clearSearch()">✖</span>
-        </div>
-        <div id="searchStatus" style="font-size: 13px; color: #888; margin-bottom: 15px; text-align: center;">⏳
-            Pobieranie bazy utworów...</div>
-        <ul id="searchListRemote" style="list-style: none; padding: 0; margin: 0; max-height: 50dvh; overflow-y: auto;">
-        </ul>
-    </div>
-
-    <div id="tabList" class="panel" style="max-height: 60dvh; overflow-y: auto;">
-        <div id="openTabsContainer" style="text-align: left;">
-            <div style="text-align: center; color: #aaa; padding: 20px;">⏳ Oczekiwanie na dane z przeglądarki...</div>
-        </div>
-    </div>
-
-    <div id="tabControls" class="panel">
-        <div class="controls-grid">
-            <button id="btnPrev" class="btn" onclick="sendCmd('prev')">⏮️</button>
-            <button id="btnPlay" class="btn btn-play" onclick="sendCmd('play')">▶️</button>
-            <button id="btnNext" class="btn" onclick="sendCmd('next')">⏭️</button>
+    <!-- RESZTA PILOTA -->
+    <div id="appInterface" style="display: none; flex-direction: column; height: 100%;">
+        <div id="topBar" class="top-bar">
+            <button id="btnTabOrders" class="top-btn" onclick="toggleTab('orders')" title="Zamówienia">📦</button>
+            <button id="btnTabSearch" class="top-btn" onclick="toggleTab('search')" title="Wyszukiwarka">🔍</button>
+            <button id="btnTabList" class="top-btn" onclick="toggleTab('list')" title="Otwarte Karty">📑</button>
+            <button id="btnTabControls" class="top-btn" onclick="toggleTab('controls')" title="Sterowanie">🎛️</button>
+            <button class="top-btn logout-btn" onclick="logoutDJ()" title="Wyloguj się">🚪</button>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <button class="btn" style="flex: 1.2; font-size: 16px; padding: 12px; background: #b71c1c;"
-                onclick="sendCmd('close')">❌ Zamknij Kartę</button>
-            <label
-                style="flex: 1; background: #222; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; gap: 10px; cursor: pointer;">
-                <input type="checkbox" id="autoPlayToggle" style="transform: scale(1.6);"
-                    onchange="sendCmd('toggle_autoplay', this.checked)">
-                AutoPlay
-            </label>
-        </div>
-
-        <div
-            style="display: flex; justify-content: space-between; background: #222; padding: 8px; border-radius: 12px;">
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Intro')" title="Intro">🎵</button>
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Outro')" title="Outro">🏁</button>
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Outro2')" title="Outro 2">🎬</button>
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Brawa')" title="Brawa">👏</button>
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Aplauz')" title="Aplauz">📣</button>
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Dzwonek')" title="Dzwonek">🔔</button>
-            <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Błąd')" title="Błąd">❌</button>
-        </div>
-
-        <button id="btnMic" onclick="toggleMic()"
-            style="background:#ff9800; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; width:100%; margin-top:10px;">
-            🎙️ WŁĄCZ MIKROFON (TALKBACK)
-        </button>
-    </div>
-
-    <div class="status-display" id="mainStatusScreen">
-        <div id="uiMode" class="mode-label">Inicjalizacja...</div>
-        <div id="uiMainDisplay" class="big-number">-</div>
-        <div id="uiSubDisplay" class="huge-title">Czekam na dane</div>
-
-        <div id="nextKaraokeContainer">
-            <div class="label-small">Następnie:</div>
-            <div id="uiNext" class="next-song">-</div>
-            <div class="label-small">W kolejce:</div>
-            <div id="uiQueue" style="margin-top:5px;"></div>
-        </div>
-
-        <div id="nextKonkursContainer"
-            style="margin-top: 20px; border-top: 1px solid #333; width: 100%; padding-top: 10px;">
-            <div class="label-small">Następny w kolejce:</div>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 5px;">
-                <span id="uiNextIdx" style="font-size: 10vw; font-weight: 900; color: #fb8c00;">-</span>
-                <span id="uiNextName" style="font-size: 6vw; color: #aaa; text-align: left; flex: 1;">-</span>
+        <div id="tabOrders" class="panel" style="max-height: 60dvh; overflow-y: auto;">
+            <div id="ordersListRemote" style="text-align: left;">
+                <div style="text-align: center; color: #aaa; padding: 20px;">⏳ Czekam na zamówienia...</div>
             </div>
         </div>
 
-        <div id="loteriaContainer" style="display: none; width: 100%; margin-top: 20px;">
-            <button class="btn"
-                style="background: #9c27b0; font-weight: bold; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4); text-transform: uppercase;"
-                onclick="sendCmd('open_lottery_window')">
-                🖥️ Otwórz / Zamknij Ekran
-            </button>
-            <button class="btn"
-                style="background: #3f51b5; font-weight: bold; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(63, 81, 181, 0.4); text-transform: uppercase;"
-                onclick="sendCmd('show_lottery_screen')">
-                📺 Wyślij na ekran (bez losowania)
-            </button>
-            <button class="btn"
-                style="background: #e91e63; font-weight: bold; width: 100%; padding: 20px; font-size: 24px; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4); text-transform: uppercase;"
-                onclick="sendCmd('start_lottery')">
-                🎉 Losuj Zwycięzcę
-            </button>
-            <div class="label-small" style="margin-top: 25px; text-align: center; color: #bbb;">🏆 Ostatni Zwycięzcy:
+        <div id="tabSearch" class="panel">
+            <div style="position: relative; margin-bottom: 5px;">
+                <input type="text" id="searchInputRemote" placeholder="Szukaj w bazie..."
+                    style="width: 100%; padding: 15px; padding-right: 40px; font-size: 18px; border-radius: 8px; border: none; box-sizing: border-box;"
+                    oninput="handleLocalSearch(this.value)">
+                <span id="clearSearchBtn"
+                    style="position: absolute; right: 10px; top: 12px; font-size: 24px; color: #888; cursor: pointer; display: none;"
+                    onclick="clearSearch()">✖</span>
             </div>
-            <ul id="winnersListRemote"
-                style="list-style: none; padding: 0; margin-top: 10px; max-height: 35dvh; overflow-y: auto; text-align: left;">
-                <li style="text-align: center; color: #777; padding: 10px;">Czekam na dane...</li>
-            </ul>
+            <div id="searchStatus" style="font-size: 13px; color: #888; margin-bottom: 15px; text-align: center;">⏳
+                Pobieranie bazy utworów...</div>
+            <ul id="searchListRemote"
+                style="list-style: none; padding: 0; margin: 0; max-height: 50dvh; overflow-y: auto;"></ul>
         </div>
-    </div>
 
-    <div style="position: fixed; bottom: 15px; left: 15px; right: 15px; display: flex; gap: 8px; z-index: 9999;">
-        <button onclick="document.getElementById('overlayModal').style.display='flex'"
-            style="flex:1.5; background: rgba(156, 39, 176, 0.85); border: 1px solid #7b1fa2; color: white; border-radius: 12px; padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-            🪄 Ekran
-        </button>
-        <button onclick="document.getElementById('soundsModal').style.display='flex'"
-            style="flex:1.5; background: rgba(3, 218, 198, 0.85); border: 1px solid #00b3a6; color: black; border-radius: 12px; padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-            🎵 Dźwięki
-        </button>
-        <button onclick="forceUnlockUI()" title="Odblokuj przyciski"
-            style="flex:1; background: rgba(34, 34, 34, 0.85); border: 1px solid #555; color: #ccc; border-radius: 12px; padding: 10px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-            🔄 Reset
-        </button>
-    </div>
+        <div id="tabList" class="panel" style="max-height: 60dvh; overflow-y: auto;">
+            <div id="openTabsContainer" style="text-align: left;">
+                <div style="text-align: center; color: #aaa; padding: 20px;">⏳ Oczekiwanie na dane z przeglądarki...
+                </div>
+            </div>
+        </div>
 
+        <div id="tabControls" class="panel">
+            <div class="controls-grid">
+                <button id="btnPrev" class="btn" onclick="sendCmd('prev')">⏮️</button>
+                <button id="btnPlay" class="btn btn-play" onclick="sendCmd('play')">▶️</button>
+                <button id="btnNext" class="btn" onclick="sendCmd('next')">⏭️</button>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="btn" style="flex: 1.2; font-size: 16px; padding: 12px; background: #b71c1c;"
+                    onclick="sendCmd('close')">❌ Zamknij Kartę</button>
+                <label
+                    style="flex: 1; background: #222; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="autoPlayToggle" style="transform: scale(1.6);"
+                        onchange="sendCmd('toggle_autoplay', this.checked)">
+                    AutoPlay
+                </label>
+            </div>
+
+            <div
+                style="display: flex; justify-content: space-between; background: #222; padding: 8px; border-radius: 12px;">
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Intro')" title="Intro">🎵</button>
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Outro')" title="Outro">🏁</button>
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Outro2')" title="Outro 2">🎬</button>
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Brawa')" title="Brawa">👏</button>
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Aplauz')" title="Aplauz">📣</button>
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Dzwonek')" title="Dzwonek">🔔</button>
+                <button class="btn sfx-btn" onclick="sendCmd('sfx', 'Błąd')" title="Błąd">❌</button>
+            </div>
+
+            <button id="btnMic" onclick="toggleMic()"
+                style="background:#ff9800; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; width:100%; margin-top:10px;">
+                🎙️ WŁĄCZ MIKROFON (TALKBACK)
+            </button>
+        </div>
+
+        <div class="status-display" id="mainStatusScreen">
+            <div id="uiMode" class="mode-label">Inicjalizacja...</div>
+            <div id="uiMainDisplay" class="big-number">-</div>
+            <div id="uiSubDisplay" class="huge-title">Czekam na dane</div>
+
+            <div id="nextKaraokeContainer">
+                <div class="label-small">Następnie:</div>
+                <div id="uiNext" class="next-song">-</div>
+                <div class="label-small">W kolejce:</div>
+                <div id="uiQueue" style="margin-top:5px;"></div>
+            </div>
+
+            <div id="nextKonkursContainer"
+                style="margin-top: 20px; border-top: 1px solid #333; width: 100%; padding-top: 10px;">
+                <div class="label-small">Następny w kolejce:</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 5px;">
+                    <span id="uiNextIdx" style="font-size: 10vw; font-weight: 900; color: #fb8c00;">-</span>
+                    <span id="uiNextName" style="font-size: 6vw; color: #aaa; text-align: left; flex: 1;">-</span>
+                </div>
+            </div>
+
+            <div id="loteriaContainer" style="display: none; width: 100%; margin-top: 20px;">
+                <button class="btn"
+                    style="background: #9c27b0; font-weight: bold; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4); text-transform: uppercase;"
+                    onclick="sendCmd('open_lottery_window')">
+                    🖥️ Otwórz / Zamknij Ekran
+                </button>
+                <button class="btn"
+                    style="background: #3f51b5; font-weight: bold; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(63, 81, 181, 0.4); text-transform: uppercase;"
+                    onclick="sendCmd('show_lottery_screen')">
+                    📺 Wyślij na ekran (bez losowania)
+                </button>
+                <button class="btn"
+                    style="background: #e91e63; font-weight: bold; width: 100%; padding: 20px; font-size: 24px; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4); text-transform: uppercase;"
+                    onclick="sendCmd('start_lottery')">
+                    🎉 Losuj Zwycięzcę
+                </button>
+                <div class="label-small" style="margin-top: 25px; text-align: center; color: #bbb;">🏆 Ostatni
+                    Zwycięzcy:</div>
+                <ul id="winnersListRemote"
+                    style="list-style: none; padding: 0; margin-top: 10px; max-height: 35dvh; overflow-y: auto; text-align: left;">
+                    <li style="text-align: center; color: #777; padding: 10px;">Czekam na dane...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PRZYCISKI DOLNE (EKRAN / DŹWIĘKI) -->
+        <div style="position: fixed; bottom: 15px; left: 15px; right: 15px; display: flex; gap: 8px; z-index: 9999;">
+            <button onclick="document.getElementById('overlayModal').style.display='flex'"
+                style="flex:1.5; background: rgba(156, 39, 176, 0.85); border: 1px solid #7b1fa2; color: white; border-radius: 12px; padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                🪄 Ekran
+            </button>
+            <button onclick="document.getElementById('soundsModal').style.display='flex'"
+                style="flex:1.5; background: rgba(3, 218, 198, 0.85); border: 1px solid #00b3a6; color: black; border-radius: 12px; padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                🎵 Dźwięki
+            </button>
+            <button onclick="forceUnlockUI()" title="Odblokuj przyciski"
+                style="flex:1; background: rgba(34, 34, 34, 0.85); border: 1px solid #555; color: #ccc; border-radius: 12px; padding: 10px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                🔄 Reset
+            </button>
+        </div>
+    </div> <!-- KONIEC APP INTERFACE -->
+
+    <!-- MODAL EKRANU (BEZ ZMIAN) -->
     <div id="overlayModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
-
         <div class="modal-box" style="border-color: #9c27b0;">
             <div class="modal-scroll-area">
-                
-                <!-- POLE TEKSTOWE -->
                 <div style="position: relative; margin-bottom: 5px; width: 100%;">
                     <textarea id="ovText" placeholder="Napis (dowolny tekst)..."
                         oninput="this.nextElementSibling.style.display = this.value.length > 0 ? 'block' : 'none'"
                         style="width:100%; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:10px; padding-right:30px; box-sizing:border-box; height:40px; min-height:40px; font-family:inherit; font-size:14px; margin:0;"></textarea>
-                    <span onclick="const inp = document.getElementById('ovText'); inp.value=''; inp.focus(); this.style.display='none'; if(typeof autoFitWindow === 'function') autoFitWindow();"
+                    <span
+                        onclick="const inp = document.getElementById('ovText'); inp.value=''; inp.focus(); this.style.display='none'; if(typeof autoFitWindow === 'function') autoFitWindow();"
                         style="display: none; position: absolute; right: 10px; top: 10px; font-size: 16px; color: #888; cursor: pointer;">✖</span>
                 </div>
-
                 <div
                     style="display: flex; gap: 15px; margin-bottom: 10px; align-items: center; background: #222; padding: 8px 12px; border-radius: 6px; border: 1px solid #444;">
                     <label
@@ -445,18 +543,16 @@
                     </label>
                     <label
                         style="font-size: 12px; color: #ccc; display: flex; align-items: center; gap: 8px; cursor: pointer; border-left: 1px solid #555; padding-left: 15px; flex: 1;">
-                        <input type="checkbox" id="ovTextBlink" style="transform: scale(1.3);">
-                        ✨ Miga
+                        <input type="checkbox" id="ovTextBlink" style="transform: scale(1.3);"> ✨ Miga
                     </label>
                 </div>
-
-                <!-- WYSZUKIWARKA GIFÓW -->
                 <div style="display:flex; gap:5px; margin-bottom:5px;">
                     <div style="position: relative; flex: 1;">
                         <input type="text" id="gifSearchQuery" placeholder="Szukaj GIFa (po angielsku)..."
                             oninput="this.nextElementSibling.style.display = this.value.length > 0 ? 'block' : 'none'"
                             style="width:100%; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:8px; padding-right: 30px; box-sizing:border-box; font-size: 12px; margin:0;">
-                        <span onclick="const inp = document.getElementById('gifSearchQuery'); inp.value=''; inp.focus(); this.style.display='none';"
+                        <span
+                            onclick="const inp = document.getElementById('gifSearchQuery'); inp.value=''; inp.focus(); this.style.display='none';"
                             style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #888; cursor: pointer;">✖</span>
                     </div>
                     <button onclick="searchGifs()"
@@ -465,24 +561,21 @@
                 <div id="gifResults"
                     style="display:flex; gap:5px; overflow-x:auto; padding-bottom:5px; margin-bottom:5px; min-height: 60px;">
                 </div>
-
-                <!-- WŁASNY LINK OBRAZKA -->
                 <div style="display:flex; align-items: center; gap: 5px; margin-bottom:15px;">
                     <div style="position: relative; flex: 1;">
                         <input type="text" id="ovImg" placeholder="Lub własny link do GIFa/Obrazka (https://...)"
                             oninput="this.nextElementSibling.style.display = this.value.length > 0 ? 'block' : 'none'"
                             style="width:100%; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:10px; padding-right:30px; box-sizing:border-box; font-size: 12px; margin:0;">
-                        <span onclick="const inp = document.getElementById('ovImg'); inp.value=''; inp.focus(); this.style.display='none'; if(typeof autoFitWindow === 'function') autoFitWindow();"
+                        <span
+                            onclick="const inp = document.getElementById('ovImg'); inp.value=''; inp.focus(); this.style.display='none'; if(typeof autoFitWindow === 'function') autoFitWindow();"
                             style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #888; cursor: pointer;">✖</span>
                     </div>
                     <label id="uploadImgBtn"
                         style="background: #2196F3; color: white; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; text-align: center; white-space: nowrap;">
                         <input type="file" id="imgUploadInput" accept="image/*" style="display: none;"
-                            onchange="uploadImageToImgBB(this.files[0])">
-                        📸 Wstaw z galerii
+                            onchange="uploadImageToImgBB(this.files[0])"> 📸 Wstaw z galerii
                     </label>
                 </div>
-
                 <div
                     style="background:#222; padding:12px; border-radius:8px; margin-bottom:15px; border: 1px solid #444;">
                     <select id="tvWindowMode"
@@ -491,7 +584,6 @@
                         <option value="window">🖥️ Tryb: Małe okienko (suwaki)</option>
                         <option value="fullscreen">🖥️ Tryb: Pełny Ekran</option>
                     </select>
-
                     <div id="trackpadControls">
                         <select id="tvAspect"
                             onchange="document.getElementById('posArea').style.aspectRatio = this.value;"
@@ -499,7 +591,6 @@
                             <option value="16/9">📺 Proporcje TV: Panoramiczny (16:9)</option>
                             <option value="4/3">📺 Proporcje TV: Kwadratowy (4:3)</option>
                         </select>
-
                         <div style="display:flex; gap:10px; margin-bottom:10px; align-items: flex-end;">
                             <div style="flex:1;">
                                 <label style="font-size:10px; color:#aaa;">Szerokość: <span
@@ -517,7 +608,6 @@
                                 style="background:#bb86fc; color:#000; border:none; border-radius:6px; padding:0 12px; height: 32px; font-weight:bold; cursor:pointer;">📏
                                 Dopasuj</button>
                         </div>
-
                         <div id="posArea"
                             style="width:100%; max-width:250px; aspect-ratio: 16/9; background:#000; border:1px solid #555; margin:10px auto; position:relative; overflow:hidden; cursor:crosshair; border-radius:4px;"
                             onclick="setPos(event)">
@@ -527,16 +617,14 @@
                         </div>
                     </div>
                 </div>
-
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div
                         style="display:flex; flex-direction:column; gap:5px; background:#222; padding:10px; border-radius:8px;">
                         <div style="display:flex; gap:8px; align-items:center;">
                             <span style="flex:1; font-size:13px; color:#ddd; font-weight:bold;">📺 Ekran 2 (TV)</span>
                             <button onclick="sendOverlay(true, 'tv')"
-                                style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">
-                                ➕ Nowe Okno
-                            </button>
+                                style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">➕
+                                Nowe Okno</button>
                         </div>
                         <div id="dynamic-tv-buttons"
                             style="display:flex; flex-direction:column; gap:5px; margin-top:5px;"></div>
@@ -553,7 +641,6 @@
                     </div>
                 </div>
             </div>
-
             <div style="padding: 15px; border-top: 1px solid #333; background: #1a1a1a;">
                 <button onclick="document.getElementById('overlayModal').style.display='none'"
                     style="width:100%; background:#333; color:#fff; font-weight:bold; border:none; padding:12px; border-radius: 8px; font-size:16px; cursor:pointer;">✖
@@ -562,9 +649,9 @@
         </div>
     </div>
 
+    <!-- MODAL DŹWIĘKÓW -->
     <div id="soundsModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
-
         <div class="modal-box" style="border-color: #03dac6;">
             <div style="padding: 15px 15px 0 15px;">
                 <div
@@ -575,41 +662,34 @@
                     <span style="font-size: 18px;">🔊</span>
                 </div>
             </div>
-
             <div class="modal-scroll-area">
                 <div id="soundsGrid"
                     style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 20px;">
                     <div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 12px; padding: 20px;">
                         Pobieranie dźwięków z bazy...</div>
                 </div>
-
                 <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
-
                 <label style="font-size:12px; color:#03dac6; margin-bottom:10px; display:block; font-weight:bold;">➕
                     DODAJ WŁASNY DŹWIĘK DO BAZY</label>
-                
-                <!-- DODAWANIE DŹWIĘKU -->
                 <div style="position: relative; margin-bottom: 8px;">
                     <input type="text" id="newSoundTitle" placeholder="Krótka nazwa (np. Bęben)"
                         oninput="this.nextElementSibling.style.display = this.value.length > 0 ? 'block' : 'none'"
                         style="width:100%; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:10px; padding-right:30px; box-sizing:border-box; font-size:12px; margin:0;">
-                    <span onclick="const inp = document.getElementById('newSoundTitle'); inp.value=''; inp.focus(); this.style.display='none';"
+                    <span
+                        onclick="const inp = document.getElementById('newSoundTitle'); inp.value=''; inp.focus(); this.style.display='none';"
                         style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #888; cursor: pointer;">✖</span>
                 </div>
                 <div style="position: relative; margin-bottom: 10px;">
                     <input type="text" id="newSoundUrl" placeholder="Link (http... .mp3)"
                         oninput="this.nextElementSibling.style.display = this.value.length > 0 ? 'block' : 'none'"
                         style="width:100%; background:#2c2c2c; color:white; border:1px solid #444; border-radius:6px; padding:10px; padding-right:30px; box-sizing:border-box; font-size:12px; margin:0;">
-                    <span onclick="const inp = document.getElementById('newSoundUrl'); inp.value=''; inp.focus(); this.style.display='none';"
+                    <span
+                        onclick="const inp = document.getElementById('newSoundUrl'); inp.value=''; inp.focus(); this.style.display='none';"
                         style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #888; cursor: pointer;">✖</span>
                 </div>
-
                 <button id="addSoundBtn" onclick="addNewSound()"
-                    style="width:100%; background:#333; color:white; border:1px solid #555; padding:10px; border-radius:6px; cursor:pointer; font-weight:bold;">
-                    Zapisz
-                </button>
+                    style="width:100%; background:#333; color:white; border:1px solid #555; padding:10px; border-radius:6px; cursor:pointer; font-weight:bold;">Zapisz</button>
             </div>
-
             <div style="padding: 15px; border-top: 1px solid #333; background: #1a1a1a;">
                 <button onclick="document.getElementById('soundsModal').style.display='none'"
                     style="width:100%; background:#333; color:#fff; font-weight:bold; border:none; padding:12px; border-radius: 8px; font-size:16px; cursor:pointer;">✖
@@ -619,14 +699,7 @@
     </div>
 
     <script>
-        // =====================================
-        // KONFIGURACJA API
-        // =====================================
-        const APPS_SCRIPT_PROXY_URL = 'https://script.google.com/macros/s/AKfycbzEyimmaojILmadkGvOoGEX0VsSxzucNWAwencvaYxhr_EdhjG1N2Vs0G2q6OZQkLEstw/exec';
-
-        // Client ID dla anonimowych uploadów do Imgur API
-        const IMGUR_CLIENT_ID = 'e729a5ec9a79a5c';
-
+        // --- KONFIGURACJA FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDBjS0W8W6iwy3i3yaVVCyMF-FimS1VzH4",
             authDomain: "indeks-karaoke.firebaseapp.com",
@@ -636,51 +709,82 @@
             messagingSenderId: "870801348066",
             appId: "1:870801348066:web:1eb45469e18a2ea45e15bb"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const auth = firebase.auth();
 
-        let myPin = localStorage.getItem('dj_pin') || prompt("🔒 Podaj PIN DJ-a:");
-        if (myPin) localStorage.setItem('dj_pin', myPin);
+        let appInitialized = false;
 
-        // --- OBSŁUGA GŁOŚNOŚCI ---
-        const savedVol = localStorage.getItem('sfx_vol');
-        if (savedVol !== null) {
-            document.getElementById('volSlider').value = savedVol * 100;
+        // Nasłuchiwanie zmian stanu logowania
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Zalogowano pomyślnie
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appInterface').style.display = 'flex';
+                if (!appInitialized) {
+                    initApp(); // Uruchamiamy aplikację dopiero po potwierdzeniu tożsamości
+                    appInitialized = true;
+                }
+            } else {
+                // Wylogowano
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('appInterface').style.display = 'none';
+                appInitialized = false;
+            }
+        });
+
+        // Funkcja logowania e-mailem i hasłem
+        async function loginDJ() {
+            const email = document.getElementById('djEmailInput').value.trim();
+            const pass = document.getElementById('djPasswordInput').value;
+            const errorDiv = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            if (!email || !pass) return;
+
+            btn.disabled = true;
+            btn.textContent = "Logowanie...";
+            errorDiv.style.display = "none";
+
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+                // Resztą zajmie się auth.onAuthStateChanged
+                btn.disabled = false;
+                btn.textContent = "Zaloguj się";
+            } catch (err) {
+                errorDiv.style.display = "block";
+                btn.disabled = false;
+                btn.textContent = "Zaloguj się";
+                console.error(err);
+            }
         }
+
+        // Funkcja wylogowywania
+        function logoutDJ() {
+            auth.signOut().then(() => {
+                location.reload();
+            });
+        }
+
+        // Zmienne App
+        const savedVol = localStorage.getItem('sfx_vol');
+        if (savedVol !== null) document.getElementById('volSlider').value = savedVol * 100;
+
         function changeVolume(val) {
             const vol = parseInt(val) / 100;
             localStorage.setItem('sfx_vol', vol);
             sendCmd('set_volume', vol);
         }
 
-        let lastCmdTs = 0;
-        let unlockTimeout = null;
-        let isPlaying = false;
-        let waitingForSongChange = false;
-        let lastSongName = "";
-        let currentModeInternal = "karaoke";
+        let lastCmdTs = 0; let unlockTimeout = null; let isPlaying = false;
+        let waitingForSongChange = false; let lastSongName = ""; let currentModeInternal = "karaoke";
+        let localBaza = []; let relX = 0; let relY = 0; let gistSounds = []; let currentlyPlayingUrl = null;
 
-        let localBaza = [];
-
-        // --- ZMIENNE DO DŹWIĘKÓW I EKRANU ---
-        let relX = 0;
-        let relY = 0;
-        let gistSounds = [];
-        let currentlyPlayingUrl = null;
-
-        // --- ZMIENNE DO WEBRTC (MIKROFON) ---
-        let localStream = null;
-        let peerConnection = null;
-
-        const uiMode = document.getElementById('uiMode');
-        const uiMain = document.getElementById('uiMainDisplay');
-        const uiSub = document.getElementById('uiSubDisplay');
-        const uiNext = document.getElementById('uiNext');
-        const uiQueue = document.getElementById('uiQueue');
-        const nextKaraokeContainer = document.getElementById('nextKaraokeContainer');
-        const nextKonkursContainer = document.getElementById('nextKonkursContainer');
-        const loteriaContainer = document.getElementById('loteriaContainer');
+        // UI Elementy
+        const uiMode = document.getElementById('uiMode'); const uiMain = document.getElementById('uiMainDisplay');
+        const uiSub = document.getElementById('uiSubDisplay'); const uiNext = document.getElementById('uiNext');
+        const uiQueue = document.getElementById('uiQueue'); const nextKaraokeContainer = document.getElementById('nextKaraokeContainer');
+        const nextKonkursContainer = document.getElementById('nextKonkursContainer'); const loteriaContainer = document.getElementById('loteriaContainer');
         const autoPlayToggle = document.getElementById('autoPlayToggle');
 
         function toggleTab(tabName) {
@@ -692,11 +796,6 @@
                     const isVisible = el.style.display === 'block';
                     el.style.display = isVisible ? 'none' : 'block';
                     if (btn) btn.classList.toggle('active', !isVisible);
-
-                    // --- DODANO: Odświeżanie skrzynki tylko przy jej ręcznym otwarciu ---
-                    if (tabName === 'orders' && !isVisible) {
-                        fetchBackgroundData();
-                    }
                 } else {
                     if (el) el.style.display = 'none';
                     if (btn) btn.classList.remove('active');
@@ -704,19 +803,12 @@
             });
         }
 
+        // Gesty
         const statusScreen = document.getElementById('mainStatusScreen');
-        let touchStartX = 0;
-        let touchEndX = 0;
-        const availableModes = ['karaoke', 'konkurs', 'loteria'];
+        let touchStartX = 0; let touchEndX = 0; const availableModes = ['karaoke', 'konkurs', 'loteria'];
 
-        statusScreen.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        statusScreen.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        });
+        statusScreen.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX, { passive: true });
+        statusScreen.addEventListener('touchend', e => { touchEndX = e.changedTouches[0].screenX; handleSwipe(); });
 
         function handleSwipe() {
             const threshold = 80;
@@ -725,117 +817,168 @@
 
             if (touchEndX < touchStartX - threshold) {
                 let nextMode = availableModes[(currentIndex + 1) % availableModes.length];
-                sendCmd('set_mode', nextMode);
-                toggleTab('');
+                sendCmd('set_mode', nextMode); toggleTab('');
             }
             if (touchEndX > touchStartX + threshold) {
                 let prevMode = availableModes[(currentIndex - 1 + availableModes.length) % availableModes.length];
-                sendCmd('set_mode', prevMode);
-                toggleTab('');
+                sendCmd('set_mode', prevMode); toggleTab('');
             }
         }
 
-        async function fetchBackgroundData() {
-            if (APPS_SCRIPT_PROXY_URL.includes('Wklej_Tutaj')) return;
+        function initApp() {
+            // Nasłuchiwanie Bazy Utworów
+            db.ref('baza').once('value', snap => {
+                const data = snap.val();
+                if (data) localBaza = Array.isArray(data) ? data : Object.values(data);
+                document.getElementById('searchStatus').textContent = `✅ Baza załadowana (${localBaza.length} utworów)`;
+            });
 
-            const list = document.getElementById('ordersListRemote');
-            // Pokaż wskaźnik ładowania, gdy użytkownik ręcznie otworzy kartę
-            if (list && list.parentElement.style.display === 'block') {
-                list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">⏳ Odświeżanie zamówień...</div>';
-            }
-
-            try {
-                const res = await fetch(APPS_SCRIPT_PROXY_URL);
-                const gist = await res.json();
-                if (gist.error) throw new Error(gist.error);
-
-                if (gist.files['baza.json']) {
-                    localBaza = JSON.parse(gist.files['baza.json'].content);
-                    document.getElementById('searchStatus').textContent = `✅ Baza załadowana (${localBaza.length} utworów)`;
-                }
-
-                if (gist.files['dzwieki.json']) {
-                    gistSounds = JSON.parse(gist.files['dzwieki.json'].content);
+            // Nasłuchiwanie Dźwięków
+            db.ref('dzwieki').on('value', snap => {
+                const data = snap.val();
+                if (data) {
+                    gistSounds = Array.isArray(data) ? data : Object.values(data);
                     renderSoundsGrid();
                 }
+            });
 
-                if (gist.files['zamowienia.json']) {
-                    const data = JSON.parse(gist.files['zamowienia.json'].content);
-                    const now = Date.now();
-                    const eightHoursInMs = 8 * 60 * 60 * 1000;
+            // Nasłuchiwanie Zamówień (Real-time z Firebase)
+            db.ref('zamowienia').on('value', snap => {
+                const data = snap.val() || {};
+                const list = document.getElementById('ordersListRemote');
+                const now = Date.now();
+                const eightHoursInMs = 8 * 60 * 60 * 1000;
+                let uniqueOrders = {};
 
-                    let uniqueOrders = {};
-                    data.forEach(o => {
-                        // Sprawdzamy limit 8 godzin (wpuszczamy też te otworzone!)
-                        if ((now - (o.id || o.timestamp)) <= eightHoursInMs) {
-                            let key = o.tytul.toLowerCase().trim();
-                            // Dajemy priorytet nieotworzonym utworom (nie nadpisujemy ich statusem "zagrane")
-                            if (!uniqueOrders[key] || !o.zagrane) {
-                                uniqueOrders[key] = o;
-                            }
+                Object.keys(data).forEach(key => {
+                    let o = data[key];
+                    o.id = key; // zachowaj ID Firebase
+                    if ((now - o.timestamp) <= eightHoursInMs) {
+                        let lowerTitle = o.tytul.toLowerCase().trim();
+                        if (!uniqueOrders[lowerTitle] || !o.zagrane) {
+                            uniqueOrders[lowerTitle] = o;
                         }
+                    }
+                });
+
+                if (list) {
+                    list.innerHTML = '';
+                    let orderCount = 0;
+                    Object.values(uniqueOrders).forEach(o => {
+                        orderCount++;
+                        const card = document.createElement('div');
+                        card.className = 'clickable-item interactive';
+                        const isPlayed = o.zagrane === true;
+                        card.style.background = isPlayed ? '#fbc02d' : '#ffffff';
+                        card.style.border = isPlayed ? '2px solid #f57f17' : '2px solid #ccc';
+                        card.style.color = '#000000';
+                        const nat = o.narodowosc ? ` | 🌍 ${o.narodowosc}` : '';
+
+                        card.innerHTML = `
+                            <div class="order-title" style="color: #000; font-weight: 900;">${o.tytul}</div>
+                            <span class="order-singer" style="color: #444; font-weight: bold;">🎤 ${o.imie || 'Wybór własny'}${nat}</span>
+                        `;
+
+                        card.onclick = () => {
+                            sendCmd('play_order', o.tytul);
+                            card.style.background = '#1b5e20';
+                            card.innerHTML = `<div class="order-title" style="color: #fff; font-weight: 900;">Wysyłanie...</div>`;
+                            setTimeout(() => { toggleTab(''); }, 600);
+                        };
+                        list.appendChild(card);
                     });
+                    if (orderCount === 0) list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">📭 Brak zamówień z ostatnich 8 godzin.</div>';
+                }
+            });
 
-                    if (list) {
-                        list.innerHTML = '';
-                        let orderCount = 0;
+            // Status zdalny z przeglądarki TV
+            db.ref('remote_status').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
 
-                        Object.values(uniqueOrders).forEach(o => {
-                            orderCount++;
-                            const card = document.createElement('div');
-                            card.className = 'clickable-item interactive';
-                            
-                            // Kolorowanie kart zależnie od statusu
-                            const isPlayed = o.zagrane === true;
-                            card.style.background = isPlayed ? '#fbc02d' : '#ffffff'; // Żółty dla otworzonych, Biały dla nowych
-                            card.style.border = isPlayed ? '2px solid #f57f17' : '2px solid #ccc';
-                            
-                            // Wymuszenie czarnego koloru czcionki (żeby było czytelnie na jasnych tłach)
-                            card.style.color = '#000000';
+                if (data.mode && currentModeInternal !== data.mode) {
+                    currentModeInternal = data.mode;
+                    toggleTab('');
+                }
 
-                            // Pobieranie narodowości (jeśli jest)
-                            const nat = o.narodowosc ? ` | 🌍 ${o.narodowosc}` : '';
+                const newTitle = data.currentName || "Brak utworu";
+                if (data.hasOwnProperty('autoPlay')) autoPlayToggle.checked = data.autoPlay;
+                renderOpenTabsList(data.openTabs || []);
 
-                            card.innerHTML = `
-                                <div class="order-title" style="color: #000; font-weight: 900;">${o.tytul}</div>
-                                <span class="order-singer" style="color: #444; font-weight: bold;">🎤 ${o.imie || 'Wybór własny'}${nat}</span>
-                            `;
-                            
-                            card.onclick = () => {
-                                sendCmd('play_order', o.tytul);
-                                // Efekt kliknięcia (ciemnozielony na chwilę)
-                                card.style.background = '#1b5e20';
-                                card.innerHTML = `<div class="order-title" style="color: #fff; font-weight: 900;">Wysyłanie...</div>`;
-                                setTimeout(() => { toggleTab(''); }, 600);
-                            };
-                            
-                            list.appendChild(card);
+                if (waitingForSongChange) {
+                    if (newTitle !== lastSongName) {
+                        waitingForSongChange = false;
+                        unlockButtons();
+                    }
+                } else if (data.lastAckTs && data.lastAckTs === lastCmdTs) {
+                    unlockButtons();
+                }
+
+                uiMode.textContent = data.mode ? `TRYB: ${data.mode.toUpperCase()}` : "";
+
+                if (data.mode === 'karaoke') {
+                    uiMain.style.display = 'none'; uiSub.textContent = newTitle; uiSub.style.fontSize = '12vw';
+                    nextKaraokeContainer.style.display = 'block'; nextKonkursContainer.style.display = 'none'; loteriaContainer.style.display = 'none';
+                    uiNext.textContent = data.nextName || "-";
+                    uiQueue.innerHTML = '';
+                    if (data.queueList) {
+                        data.queueList.forEach(song => {
+                            const div = document.createElement('div'); div.className = 'queue-item'; div.textContent = song; uiQueue.appendChild(div);
                         });
-
-                        if (orderCount === 0) list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">📭 Brak zamówień z ostatnich 8 godzin.</div>';
                     }
                 }
-            } catch (e) {
-                if (list) list.innerHTML = '<div style="text-align: center; color: #f44336; padding: 20px;">❌ Błąd pobierania danych.</div>';
-            }
-        }
+                else if (data.mode === 'konkurs') {
+                    uiMain.style.display = 'block'; uiMain.textContent = data.konkursIndex || "1";
+                    uiSub.textContent = newTitle; uiSub.style.fontSize = '8vw';
+                    nextKaraokeContainer.style.display = 'none'; nextKonkursContainer.style.display = 'block'; loteriaContainer.style.display = 'none';
+                    document.getElementById('uiNextIdx').textContent = data.nextKonkursIndex || "-";
+                    document.getElementById('uiNextName').textContent = data.nextName || "-";
+                }
+                else if (data.mode === 'loteria') {
+                    uiMain.style.display = 'none'; uiSub.textContent = "LOSOWANIE"; uiSub.style.fontSize = '15vw';
+                    nextKaraokeContainer.style.display = 'none'; nextKonkursContainer.style.display = 'none'; loteriaContainer.style.display = 'block';
+                    const winnersList = document.getElementById('winnersListRemote'); winnersList.innerHTML = '';
+                    if (data.winners && data.winners.length > 0) {
+                        data.winners.forEach(w => {
+                            winnersList.innerHTML += `
+                                <li style="background: #2c2c2c; margin-bottom: 8px; padding: 12px; border-radius: 8px; border-left: 4px solid #e91e63;">
+                                    <div style="font-weight: bold; font-size: 18px; color: #fff;">${w.name}</div>
+                                    <div style="color: #aaa; font-size: 14px; margin-top: 4px;">Zgłoszenie: <b style="color:#e91e63;">${w.code}</b></div>
+                                </li>`;
+                        });
+                    } else {
+                        winnersList.innerHTML = '<li style="text-align: center; color: #777; padding: 10px;">Brak zwycięzców w tej sesji</li>';
+                    }
+                }
 
-        fetchBackgroundData(); // Pobiera dane raz na starcie
+                // Wizja / Okna
+                const dynamicTvContainer = document.getElementById('dynamic-tv-buttons');
+                if (dynamicTvContainer) {
+                    dynamicTvContainer.innerHTML = '';
+                    if (data.activeTvOverlays && data.activeTvOverlays.length > 0) {
+                        data.activeTvOverlays.forEach(overlayId => {
+                            const btn = document.createElement('button');
+                            btn.style.cssText = "background:#f44336; color:white; border:none; padding:10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer; text-align:left; display:flex; justify-content:space-between;";
+                            const labelText = overlayId === 'local_ext_msg' ? 'Wiadomość z panelu DJ-a' : 'Wiadomość z telefonu';
+                            btn.innerHTML = `<span>✖ Zamknij: ${labelText}</span>`;
+                            btn.onclick = () => { sendCmd('tv_overlay_close', { id: overlayId }); if (navigator.vibrate) navigator.vibrate(20); };
+                            dynamicTvContainer.appendChild(btn);
+                        });
+                    }
+                }
+            });
+        } // End initApp
 
         function clearSearch() {
             const input = document.getElementById('searchInputRemote');
-            input.value = '';
-            document.getElementById('clearSearchBtn').style.display = 'none';
-            document.getElementById('searchListRemote').innerHTML = '';
-            input.focus();
+            input.value = ''; document.getElementById('clearSearchBtn').style.display = 'none';
+            document.getElementById('searchListRemote').innerHTML = ''; input.focus();
         }
 
         function handleLocalSearch(query) {
             const list = document.getElementById('searchListRemote');
             document.getElementById('clearSearchBtn').style.display = query.length > 0 ? 'block' : 'none';
-
-            list.innerHTML = '';
-            query = query.toLowerCase().trim();
+            list.innerHTML = ''; query = query.toLowerCase().trim();
             if (query.length < 2) return;
 
             const results = localBaza.filter(s => s.title.toLowerCase().includes(query)).slice(0, 15);
@@ -865,11 +1008,7 @@
 
         function renderOpenTabsList(tabs) {
             const container = document.getElementById('openTabsContainer');
-            if (!tabs || tabs.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Brak otwartych kart z muzyką.</div>';
-                return;
-            }
-
+            if (!tabs || tabs.length === 0) { container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Brak otwartych kart z muzyką.</div>'; return; }
             let html = '';
             tabs.forEach((t, i) => {
                 html += `
@@ -878,9 +1017,7 @@
                         <button class="tiny-btn" onclick="sendCmd('move_tab', {id: ${t.id}, dir: -1})" ${i === 0 ? 'disabled' : ''} title="Wyżej">▲</button>
                         <button class="tiny-btn" onclick="sendCmd('move_tab', {id: ${t.id}, dir: 1})" ${i === tabs.length - 1 ? 'disabled' : ''} title="Niżej">▼</button>
                     </div>
-                    <div style="flex:1; word-break: break-word; white-space: normal; font-size:13px; font-weight:bold; line-height: 1.2;">
-                        ${t.title}
-                    </div>
+                    <div style="flex:1; word-break: break-word; white-space: normal; font-size:13px; font-weight:bold; line-height: 1.2;">${t.title}</div>
                     <button class="tiny-btn" style="background:#4CAF50; padding:10px 10px; font-size:16px;" onclick="sendCmd('move_tab_top', ${t.id})" ${i === 0 ? 'disabled' : ''} title="Przesuń na samą górę">⏫</button>
                     <button style="background:#d32f2f; border:none; color:white; padding:10px 12px; border-radius:6px; font-weight:bold; font-size:14px; cursor:pointer;" onclick="sendCmd('close_tab', ${t.id})" title="Zamknij">✖</button>
                 </div>`;
@@ -888,110 +1025,9 @@
             container.innerHTML = html;
         }
 
-        db.ref('remote_status').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-
-            if (data.mode && currentModeInternal !== data.mode) {
-                currentModeInternal = data.mode;
-                toggleTab('');
-            }
-
-            const newTitle = data.currentName || "Brak utworu";
-
-            if (data.hasOwnProperty('autoPlay')) autoPlayToggle.checked = data.autoPlay;
-            renderOpenTabsList(data.openTabs || []);
-
-            if (waitingForSongChange) {
-                if (newTitle !== lastSongName) {
-                    waitingForSongChange = false;
-                    unlockButtons();
-                }
-            } else if (data.lastAckTs && data.lastAckTs === lastCmdTs) {
-                unlockButtons();
-            }
-
-            uiMode.textContent = data.mode ? `TRYB: ${data.mode.toUpperCase()}` : "";
-
-            if (data.mode === 'karaoke') {
-                uiMain.style.display = 'none';
-                uiSub.textContent = newTitle;
-                uiSub.style.fontSize = '12vw';
-                nextKaraokeContainer.style.display = 'block';
-                nextKonkursContainer.style.display = 'none';
-                loteriaContainer.style.display = 'none';
-                uiNext.textContent = data.nextName || "-";
-
-                uiQueue.innerHTML = '';
-                if (data.queueList) {
-                    data.queueList.forEach(song => {
-                        const div = document.createElement('div');
-                        div.className = 'queue-item';
-                        div.textContent = song;
-                        uiQueue.appendChild(div);
-                    });
-                }
-            }
-            else if (data.mode === 'konkurs') {
-                uiMain.style.display = 'block';
-                uiMain.textContent = data.konkursIndex || "1";
-                uiSub.textContent = newTitle;
-                uiSub.style.fontSize = '8vw';
-                nextKaraokeContainer.style.display = 'none';
-                nextKonkursContainer.style.display = 'block';
-                loteriaContainer.style.display = 'none';
-                document.getElementById('uiNextIdx').textContent = data.nextKonkursIndex || "-";
-                document.getElementById('uiNextName').textContent = data.nextName || "-";
-            }
-            else if (data.mode === 'loteria') {
-                uiMain.style.display = 'none';
-                uiSub.textContent = "LOSOWANIE";
-                uiSub.style.fontSize = '15vw';
-                nextKaraokeContainer.style.display = 'none';
-                nextKonkursContainer.style.display = 'none';
-                loteriaContainer.style.display = 'block';
-
-                const winnersList = document.getElementById('winnersListRemote');
-                winnersList.innerHTML = '';
-                if (data.winners && data.winners.length > 0) {
-                    data.winners.forEach(w => {
-                        winnersList.innerHTML += `
-                            <li style="background: #2c2c2c; margin-bottom: 8px; padding: 12px; border-radius: 8px; border-left: 4px solid #e91e63;">
-                                <div style="font-weight: bold; font-size: 18px; color: #fff;">${w.name}</div>
-                                <div style="color: #aaa; font-size: 14px; margin-top: 4px;">Zgłoszenie: <b style="color:#e91e63;">${w.code}</b></div>
-                            </li>
-                        `;
-                    });
-                } else {
-                    winnersList.innerHTML = '<li style="text-align: center; color: #777; padding: 10px;">Brak zwycięzców w tej sesji</li>';
-                }
-            }
-            // Aktualizacja przycisków zamykania okien TV na podstawie danych z laptopa
-            const dynamicTvContainer = document.getElementById('dynamic-tv-buttons');
-            if (dynamicTvContainer) {
-                dynamicTvContainer.innerHTML = ''; // Czyścimy starą listę
-
-                if (data.activeTvOverlays && data.activeTvOverlays.length > 0) {
-                    data.activeTvOverlays.forEach(overlayId => {
-                        const btn = document.createElement('button');
-                        btn.style.cssText = "background:#f44336; color:white; border:none; padding:10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer; text-align:left; display:flex; justify-content:space-between;";
-
-                        // Zgrabna nazwa w zależności od tego, skąd przyszła wiadomość
-                        const labelText = overlayId === 'local_ext_msg' ? 'Wiadomość z panelu DJ-a' : 'Wiadomość z telefonu';
-
-                        btn.innerHTML = `<span>✖ Zamknij: ${labelText}</span>`;
-                        btn.onclick = () => {
-                            sendCmd('tv_overlay_close', { id: overlayId });
-                            if (navigator.vibrate) navigator.vibrate(20);
-                        };
-                        dynamicTvContainer.appendChild(btn);
-                    });
-                }
-            }
-        });
-
         function sendCmd(action, value = null) {
-            if (!myPin) { location.reload(); return; }
+            const user = auth.currentUser;
+            if (!user) { location.reload(); return; } // Wyrzuć jeśli nagle wylogowano
 
             if (action === 'play') {
                 isPlaying = !isPlaying;
@@ -1006,10 +1042,7 @@
 
             const buttonsIds = ['btnPrev', 'btnPlay', 'btnNext'];
             if (action === 'prev' || action === 'next' || action === 'play') {
-                buttonsIds.forEach(id => {
-                    const btn = document.getElementById(id);
-                    if (btn) btn.disabled = true;
-                });
+                buttonsIds.forEach(id => { const btn = document.getElementById(id); if (btn) btn.disabled = true; });
             }
 
             let targetBtn1 = document.getElementById('btn' + action.charAt(0).toUpperCase() + action.slice(1));
@@ -1018,23 +1051,17 @@
             lastCmdTs = Date.now();
 
             if (action === 'prev' || action === 'next' || action === 'play_order') {
-                waitingForSongChange = true;
-                lastSongName = uiSub.textContent;
-
+                waitingForSongChange = true; lastSongName = uiSub.textContent;
                 clearTimeout(unlockTimeout);
-                unlockTimeout = setTimeout(() => {
-                    waitingForSongChange = false;
-                    unlockButtons();
-                }, 4000);
+                unlockTimeout = setTimeout(() => { waitingForSongChange = false; unlockButtons(); }, 4000);
             } else {
                 waitingForSongChange = false;
                 clearTimeout(unlockTimeout);
                 unlockTimeout = setTimeout(unlockButtons, 1500);
             }
 
-            db.ref('remote_cmd').set({ action: action, value: value, pin: myPin, ts: lastCmdTs })
-                .catch(e => { localStorage.removeItem('dj_pin'); location.reload(); });
-
+            // Wysyłamy e-mail DJ'a zamiast PIN'u
+            db.ref('remote_cmd').set({ action: action, value: value, dj: user.email, ts: lastCmdTs }).catch(e => { console.error(e); });
             if (navigator.vibrate) navigator.vibrate(40);
         }
 
@@ -1042,120 +1069,64 @@
             ['btnPrev', 'btnPlay', 'btnNext'].forEach(id => {
                 let btn = document.getElementById(id);
                 if (btn) {
-                    if (id.includes('Play')) {
-                        btn.disabled = false;
-                        btn.classList.remove('pressed');
-                    } else {
-                        btn.disabled = isPlaying;
-                        btn.classList.remove('pressed');
-                    }
+                    if (id.includes('Play')) { btn.disabled = false; btn.classList.remove('pressed'); }
+                    else { btn.disabled = isPlaying; btn.classList.remove('pressed'); }
                 }
             });
         }
 
         function forceUnlockUI() {
-            waitingForSongChange = false;
-            isPlaying = false;
-            const btnPlay = document.getElementById('btnPlay');
-            if (btnPlay) btnPlay.textContent = '▶️';
-            unlockButtons();
-            if (navigator.vibrate) navigator.vibrate(20);
+            waitingForSongChange = false; isPlaying = false;
+            const btnPlay = document.getElementById('btnPlay'); if (btnPlay) btnPlay.textContent = '▶️';
+            unlockButtons(); if (navigator.vibrate) navigator.vibrate(20);
         }
-
-        // ===============================================
-        // LOGIKA WGRYWANIA OBRAZKA (IMGUR API)
-        // ===============================================
 
         async function uploadImageToImgBB(file) {
             if (!file) return;
-
             const API_KEY = 'f98fb89b1b4311d6ad650b93a22954a0';
-
             const btnLabel = document.getElementById('uploadImgBtn');
             const imgInputUrl = document.getElementById('ovImg');
 
-            btnLabel.style.background = '#888';
-            btnLabel.innerHTML = '⏳ Przesyłam...';
-            btnLabel.style.pointerEvents = 'none';
+            btnLabel.style.background = '#888'; btnLabel.innerHTML = '⏳ Przesyłam...'; btnLabel.style.pointerEvents = 'none';
 
-            const formData = new FormData();
-            formData.append("image", file);
+            const formData = new FormData(); formData.append("image", file);
 
             try {
-                const response = await fetch(`https://api.imgbb.com/1/upload?expiration=120&key=${API_KEY}`, {
-                    method: "POST",
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Odmowa dostępu do serwera (Kod: ${response.status})`);
-                }
-
+                const response = await fetch(`https://api.imgbb.com/1/upload?expiration=120&key=${API_KEY}`, { method: "POST", body: formData });
+                if (!response.ok) throw new Error(`Odmowa dostępu do serwera`);
                 const data = await response.json();
-
                 if (data.success) {
                     imgInputUrl.value = data.data.url;
-                    // Odkrywamy krzyżyk czyszczenia
-                    if(imgInputUrl.nextElementSibling) imgInputUrl.nextElementSibling.style.display = 'block';
-                    
-                    btnLabel.style.background = '#4CAF50';
-                    btnLabel.innerHTML = '✅ Sukces!';
+                    if (imgInputUrl.nextElementSibling) imgInputUrl.nextElementSibling.style.display = 'block';
+                    btnLabel.style.background = '#4CAF50'; btnLabel.innerHTML = '✅ Sukces!';
                     if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
                     setTimeout(autoFitWindow, 500);
-                } else {
-                    throw new Error("Serwer odrzucił plik.");
-                }
+                } else throw new Error("Serwer odrzucił plik.");
             } catch (err) {
-                console.error("Błąd ImgBB:", err);
                 alert("Błąd podczas wgrywania: " + err.message);
-                btnLabel.style.background = '#f44336';
-                btnLabel.innerHTML = '❌ Błąd';
+                btnLabel.style.background = '#f44336'; btnLabel.innerHTML = '❌ Błąd';
             } finally {
                 setTimeout(() => {
-                    btnLabel.style.background = '#2196F3';
+                    btnLabel.style.background = '#2196F3'; btnLabel.style.pointerEvents = 'auto';
                     btnLabel.innerHTML = '<input type="file" id="imgUploadInput" accept="image/*" style="display: none;" onchange="uploadImageToImgBB(this.files[0])">📸 Wstaw z galerii';
-                    btnLabel.style.pointerEvents = 'auto';
                 }, 3000);
             }
         }
 
-
-        // ===============================================
-        // LOGIKA DŹWIĘKÓW
-        // ===============================================
-
         function renderSoundsGrid() {
-            const grid = document.getElementById('soundsGrid');
-            grid.innerHTML = '';
-
-            if (gistSounds.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 12px; padding: 20px;">Brak dźwięków w bazie.</div>';
-                return;
-            }
+            const grid = document.getElementById('soundsGrid'); grid.innerHTML = '';
+            if (gistSounds.length === 0) { grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 12px; padding: 20px;">Brak dźwięków w bazie.</div>'; return; }
 
             gistSounds.forEach((sound, i) => {
                 const btn = document.createElement('button');
-                btn.className = 'sound-grid-btn';
-                btn.id = 'sound-btn-' + i;
-                btn.textContent = sound.title;
+                btn.className = 'sound-grid-btn'; btn.id = 'sound-btn-' + i; btn.textContent = sound.title;
                 btn.onclick = () => {
                     if (currentlyPlayingUrl === sound.url) {
-                        sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() });
-                        currentlyPlayingUrl = null;
-                        btn.classList.remove('playing');
+                        sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() }); currentlyPlayingUrl = null; btn.classList.remove('playing');
                     } else {
-                        sendCmd('remote_audio', { action: 'play', url: sound.url, timestamp: Date.now() });
-                        currentlyPlayingUrl = sound.url;
-
-                        document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing'));
-                        btn.classList.add('playing');
-
-                        setTimeout(() => {
-                            if (currentlyPlayingUrl === sound.url) {
-                                currentlyPlayingUrl = null;
-                                btn.classList.remove('playing');
-                            }
-                        }, 8000);
+                        sendCmd('remote_audio', { action: 'play', url: sound.url, timestamp: Date.now() }); currentlyPlayingUrl = sound.url;
+                        document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing')); btn.classList.add('playing');
+                        setTimeout(() => { if (currentlyPlayingUrl === sound.url) { currentlyPlayingUrl = null; btn.classList.remove('playing'); } }, 8000);
                     }
                     if (navigator.vibrate) navigator.vibrate(20);
                 };
@@ -1167,89 +1138,43 @@
             const titleInput = document.getElementById('newSoundTitle');
             const urlInput = document.getElementById('newSoundUrl');
             const btn = document.getElementById('addSoundBtn');
-            const title = titleInput.value.trim();
-            const url = urlInput.value.trim();
+            const title = titleInput.value.trim(); const url = urlInput.value.trim();
 
-            if (!title || !url) {
-                alert("Podaj nazwę i adres url pliku .mp3!");
-                return;
-            }
-
-            btn.textContent = "⏳ Dodawanie...";
-            btn.disabled = true;
+            if (!title || !url) { alert("Podaj nazwę i adres url pliku .mp3!"); return; }
+            btn.textContent = "⏳ Dodawanie..."; btn.disabled = true;
 
             try {
-                const response = await fetch(APPS_SCRIPT_PROXY_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'add_sound', title: title, url: url })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    gistSounds.push({ title: title, url: url });
-                    renderSoundsGrid();
-
-                    titleInput.value = '';
-                    urlInput.value = '';
-                    // Ukryj krzyżyki po wyczyszczeniu pola
-                    if(titleInput.nextElementSibling) titleInput.nextElementSibling.style.display = 'none';
-                    if(urlInput.nextElementSibling) urlInput.nextElementSibling.style.display = 'none';
-                } else {
-                    alert("Błąd: " + result.error);
-                }
+                await db.ref('dzwieki').push({ title: title, url: url });
+                titleInput.value = ''; urlInput.value = '';
+                if (titleInput.nextElementSibling) titleInput.nextElementSibling.style.display = 'none';
+                if (urlInput.nextElementSibling) urlInput.nextElementSibling.style.display = 'none';
             } catch (err) {
                 alert("Wystąpił problem z połączeniem: " + err.message);
             } finally {
-                btn.textContent = "Zapisz";
-                btn.disabled = false;
+                btn.textContent = "Zapisz"; btn.disabled = false;
             }
         }
 
-        // ===============================================
-        // LOGIKA NAKŁADKI EKRANOWEJ (WIZJA)
-        // ===============================================
-
         function updateWinPreview() {
-            const w = document.getElementById('winW').value;
-            const h = document.getElementById('winH').value;
-            document.getElementById('wDisp').textContent = w + "%";
-            document.getElementById('hDisp').textContent = h + "%";
-
-            const box = document.getElementById('posBox');
-            box.style.width = w + "%";
-            box.style.height = h + "%";
-
-            if (relX + parseInt(w) > 100) relX = 100 - parseInt(w);
-            if (relY + parseInt(h) > 100) relY = 100 - parseInt(h);
-
-            box.style.left = relX + "%";
-            box.style.top = relY + "%";
+            const w = document.getElementById('winW').value; const h = document.getElementById('winH').value;
+            document.getElementById('wDisp').textContent = w + "%"; document.getElementById('hDisp').textContent = h + "%";
+            const box = document.getElementById('posBox'); box.style.width = w + "%"; box.style.height = h + "%";
+            if (relX + parseInt(w) > 100) relX = 100 - parseInt(w); if (relY + parseInt(h) > 100) relY = 100 - parseInt(h);
+            box.style.left = relX + "%"; box.style.top = relY + "%";
         }
 
         function setPos(e) {
-            const area = document.getElementById('posArea');
-            const rect = area.getBoundingClientRect();
-            const w = document.getElementById('winW').value;
-            const h = document.getElementById('winH').value;
-
-            let x = ((e.clientX - rect.left) / rect.width) * 100;
-            let y = ((e.clientY - rect.top) / rect.height) * 100;
-
-            relX = Math.max(0, Math.min(100 - w, x - w / 2));
-            relY = Math.max(0, Math.min(100 - h, y - h / 2));
-
+            const area = document.getElementById('posArea'); const rect = area.getBoundingClientRect();
+            const w = document.getElementById('winW').value; const h = document.getElementById('winH').value;
+            let x = ((e.clientX - rect.left) / rect.width) * 100; let y = ((e.clientY - rect.top) / rect.height) * 100;
+            relX = Math.max(0, Math.min(100 - w, x - w / 2)); relY = Math.max(0, Math.min(100 - h, y - h / 2));
             updateWinPreview();
         }
 
         function autoFitWindow() {
-            const wInput = document.getElementById('winW');
-            const hInput = document.getElementById('winH');
-            const imgUrl = document.getElementById('ovImg').value.trim();
-            const textVal = document.getElementById('ovText').value.trim();
-
-            const tvAspectStr = document.getElementById('tvAspect').value.split('/');
-            const screenRatio = parseFloat(tvAspectStr[0]) / parseFloat(tvAspectStr[1]);
+            const wInput = document.getElementById('winW'); const hInput = document.getElementById('winH');
+            const imgUrl = document.getElementById('ovImg').value.trim(); const textVal = document.getElementById('ovText').value.trim();
+            const tvAspectStr = document.getElementById('tvAspect').value.split('/'); const screenRatio = parseFloat(tvAspectStr[0]) / parseFloat(tvAspectStr[1]);
 
             if (imgUrl) {
                 const img = new Image();
@@ -1257,54 +1182,29 @@
                     const imgRatio = img.naturalWidth / img.naturalHeight;
                     let newH = parseInt(wInput.value) * (screenRatio / imgRatio);
                     newH = Math.max(10, Math.min(100, Math.round(newH)));
-                    hInput.value = newH;
-                    updateWinPreview();
-                    if (navigator.vibrate) navigator.vibrate(20);
+                    hInput.value = newH; updateWinPreview(); if (navigator.vibrate) navigator.vibrate(20);
                 };
                 img.src = imgUrl;
             } else if (textVal) {
-                let newH = parseInt(wInput.value) / 3;
-                newH = Math.max(10, Math.min(100, Math.round(newH)));
-                hInput.value = newH;
-                updateWinPreview();
-                if (navigator.vibrate) navigator.vibrate(20);
+                let newH = parseInt(wInput.value) / 3; newH = Math.max(10, Math.min(100, Math.round(newH)));
+                hInput.value = newH; updateWinPreview(); if (navigator.vibrate) navigator.vibrate(20);
             }
         }
 
         function sendOverlay(active, target) {
-            if (!myPin) { location.reload(); return; }
-
-            const text = document.getElementById('ovText').value.trim();
-            const textColor = document.getElementById('ovTextColor').value;
-            const textBlink = document.getElementById('ovTextBlink').checked;
-
-            const img = document.getElementById('ovImg').value.trim();
-            const w = document.getElementById('winW').value;
-            const h = document.getElementById('winH').value;
-            const mode = document.getElementById('tvWindowMode').value;
+            const user = auth.currentUser;
+            if (!user) { location.reload(); return; }
 
             const payload = {
-                active: active,
-                text: text,
-                textColor: textColor,
-                textBlink: textBlink,
-                imageUrl: img,
-                win: { mode: mode, w: parseInt(w), h: parseInt(h), x: relX, y: relY }
+                active: active, text: document.getElementById('ovText').value.trim(), textColor: document.getElementById('ovTextColor').value,
+                textBlink: document.getElementById('ovTextBlink').checked, imageUrl: document.getElementById('ovImg').value.trim(),
+                win: { mode: document.getElementById('tvWindowMode').value, w: parseInt(document.getElementById('winW').value), h: parseInt(document.getElementById('winH').value), x: relX, y: relY }
             };
 
-            if (target === 'roboczy') {
-                // Ekran roboczy zostaje po staremu (jedno główne okno)
-                sendCmd('custom_overlay', payload);
-            }
+            if (target === 'roboczy') sendCmd('custom_overlay', payload);
             else if (target === 'tv') {
-                if (active) {
-                    // Generujemy unikalne ID dla nowego okna i wysyłamy do Firebase. 
-                    // Przycisk zamykania wygeneruje się sam z nasłuchiwacza remote_status!
-                    const overlayId = Date.now().toString();
-                    sendCmd('tv_overlay_open', { id: overlayId, payload: payload });
-                }
+                if (active) { const overlayId = Date.now().toString(); sendCmd('tv_overlay_open', { id: overlayId, payload: payload }); }
             }
-
             if (navigator.vibrate) navigator.vibrate(20);
         }
 
@@ -1314,126 +1214,46 @@
             if (!query) return;
 
             resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Szukam...</span>';
-
             try {
                 const res = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=20`);
                 const data = await res.json();
-
                 resultsDiv.innerHTML = '';
                 if (data.results && data.results.length > 0) {
                     data.results.forEach(gif => {
-                        const url = gif.media[0].gif.url;
-                        const preview = gif.media[0].nanogif.url;
-
-                        const img = document.createElement('img');
-                        img.src = preview;
-                        img.style.height = '60px';
-                        img.style.borderRadius = '4px';
-                        img.style.cursor = 'pointer';
-                        img.style.border = '2px solid transparent';
-
+                        const url = gif.media[0].gif.url; const preview = gif.media[0].nanogif.url;
+                        const img = document.createElement('img'); img.src = preview; img.style.height = '60px'; img.style.borderRadius = '4px'; img.style.cursor = 'pointer'; img.style.border = '2px solid transparent';
                         img.onclick = () => {
-                            const ovImgInput = document.getElementById('ovImg');
-                            ovImgInput.value = url;
-                            if(ovImgInput.nextElementSibling) ovImgInput.nextElementSibling.style.display = 'block';
-                            
-                            Array.from(resultsDiv.children).forEach(c => c.style.borderColor = 'transparent');
-                            img.style.borderColor = '#9c27b0';
+                            const ovImgInput = document.getElementById('ovImg'); ovImgInput.value = url;
+                            if (ovImgInput.nextElementSibling) ovImgInput.nextElementSibling.style.display = 'block';
+                            Array.from(resultsDiv.children).forEach(c => c.style.borderColor = 'transparent'); img.style.borderColor = '#9c27b0';
                         };
-
                         resultsDiv.appendChild(img);
                     });
-                } else {
-                    resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Brak wyników</span>';
-                }
-            } catch (e) {
-                resultsDiv.innerHTML = '<span style="color:#f44336; font-size:12px;">Błąd pobierania</span>';
-            }
+                } else resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Brak wyników</span>';
+            } catch (e) { resultsDiv.innerHTML = '<span style="color:#f44336; font-size:12px;">Błąd pobierania</span>'; }
         }
+        document.getElementById('gifSearchQuery').addEventListener('keypress', function (e) { if (e.key === 'Enter') searchGifs(); });
 
-        document.getElementById('gifSearchQuery').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') searchGifs();
-        });
-
-        // ===============================================
-        // LOGIKA WEBRTC (MIKROFON NA ŻYWO) - DIAGNOSTYKA
-        // ===============================================
-
+        let localStream = null; let peerConnection = null;
         async function toggleMic() {
             const btn = document.getElementById('btnMic');
-
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-                if (peerConnection) peerConnection.close();
-                peerConnection = null;
-                db.ref('webrtc').remove();
-                btn.innerHTML = '🎙️ WŁĄCZ MIKROFON (TALKBACK)';
-                btn.style.background = '#ff9800';
-                sendCmd('debug', 'Zatrzymano mikrofon na telefonie');
+                localStream.getTracks().forEach(track => track.stop()); localStream = null;
+                if (peerConnection) peerConnection.close(); peerConnection = null;
+                db.ref('webrtc').remove(); btn.innerHTML = '🎙️ WŁĄCZ MIKROFON (TALKBACK)'; btn.style.background = '#ff9800'; sendCmd('debug', 'Zatrzymano mikrofon na telefonie');
                 return;
             }
-
             try {
-                btn.innerHTML = '⏳ Mikrofon (Krok 1)...';
-                sendCmd('debug', '1. Żądam dostępu do mikrofonu od przeglądarki...');
-
+                btn.innerHTML = '⏳ Mikrofon (Krok 1)...'; sendCmd('debug', '1. Żądam dostępu do mikrofonu od przeglądarki...');
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                btn.innerHTML = '⏳ Łączenie (Krok 2)...';
-                sendCmd('debug', '2. Otrzymano mikrofon. Buduję połączenie (RTCPeerConnection)...');
-
-                peerConnection = new RTCPeerConnection({
-                    iceServers: [
-                        {
-                            urls: "stun:stun.relay.metered.ca:80",
-                        },
-                        {
-                            urls: "turn:global.relay.metered.ca:80",
-                            username: "12760328858a1463f5f5bc67",
-                            credential: "sIwXPxa3nn0cRQn1",
-                        },
-                        {
-                            urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                            username: "12760328858a1463f5f5bc67",
-                            credential: "sIwXPxa3nn0cRQn1",
-                        },
-                        {
-                            urls: "turn:global.relay.metered.ca:443",
-                            username: "12760328858a1463f5f5bc67",
-                            credential: "sIwXPxa3nn0cRQn1",
-                        },
-                        {
-                            urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                            username: "12760328858a1463f5f5bc67",
-                            credential: "sIwXPxa3nn0cRQn1",
-                        },
-                    ],
-                });
+                btn.innerHTML = '⏳ Łączenie (Krok 2)...'; sendCmd('debug', '2. Otrzymano mikrofon. Buduję połączenie (RTCPeerConnection)...');
+                peerConnection = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.relay.metered.ca:80" }, { urls: "turn:global.relay.metered.ca:80", username: "12760328858a1463f5f5bc67", credential: "sIwXPxa3nn0cRQn1" }] });
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        db.ref('webrtc/pilot_candidates').push({
-                            candidate: event.candidate.candidate,
-                            sdpMid: event.candidate.sdpMid,
-                            sdpMLineIndex: event.candidate.sdpMLineIndex
-                        });
-                    }
-                };
-
-                btn.innerHTML = '⏳ Zaproszenie (Krok 3)...';
-                sendCmd('debug', '3. Tworzę ofertę WebRTC i wysyłam do Firebase...');
-
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                await db.ref('webrtc/offer').set({
-                    type: offer.type,
-                    sdp: offer.sdp
-                });
-
+                peerConnection.onicecandidate = (event) => { if (event.candidate) db.ref('webrtc/pilot_candidates').push({ candidate: event.candidate.candidate, sdpMid: event.candidate.sdpMid, sdpMLineIndex: event.candidate.sdpMLineIndex }); };
+                btn.innerHTML = '⏳ Zaproszenie (Krok 3)...'; sendCmd('debug', '3. Tworzę ofertę WebRTC i wysyłam do Firebase...');
+                const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
+                await db.ref('webrtc/offer').set({ type: offer.type, sdp: offer.sdp });
                 sendCmd('debug', '4. Oferta w bazie. Czekam na odpowiedź (Answer) z laptopa...');
-
                 db.ref('webrtc/answer').off();
                 db.ref('webrtc/answer').on('value', async (snap) => {
                     const answer = snap.val();
@@ -1441,30 +1261,16 @@
                         try {
                             sendCmd('debug', '5. ODEBRANO odpowiedź z laptopa! Paruję...');
                             await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: answer.type, sdp: answer.sdp }));
-                            btn.innerHTML = '🔴 MIKROFON NA ŻYWO (Kliknij by wyłączyć)';
-                            btn.style.background = '#e53935';
-                            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-                            sendCmd('debug', '6. SUKCES! Mikrofon podłączony.');
-                        } catch (err) {
-                            sendCmd('debug', 'BŁĄD PAROWANIA: ' + err.message);
-                        }
+                            btn.innerHTML = '🔴 MIKROFON NA ŻYWO (Kliknij by wyłączyć)'; btn.style.background = '#e53935';
+                            if (navigator.vibrate) navigator.vibrate([50, 50, 50]); sendCmd('debug', '6. SUKCES! Mikrofon podłączony.');
+                        } catch (err) { sendCmd('debug', 'BŁĄD PAROWANIA: ' + err.message); }
                     }
                 });
-
                 db.ref('webrtc/laptop_candidates').off();
                 db.ref('webrtc/laptop_candidates').on('child_added', (snap) => {
-                    const candidate = snap.val();
-                    if (candidate && peerConnection.remoteDescription) {
-                        peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                    }
+                    const candidate = snap.val(); if (candidate && peerConnection.remoteDescription) peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                 });
-
-            } catch (err) {
-                alert("Brak uprawnień lub błąd telefonu: " + err.message);
-                btn.innerHTML = '🎙️ WŁĄCZ MIKROFON (TALKBACK)';
-                btn.style.background = '#ff9800';
-                sendCmd('debug', 'KRYTYCZNY BŁĄD TELEFONU: ' + err.message);
-            }
+            } catch (err) { alert("Brak uprawnień lub błąd telefonu: " + err.message); btn.innerHTML = '🎙️ WŁĄCZ MIKROFON (TALKBACK)'; btn.style.background = '#ff9800'; sendCmd('debug', 'KRYTYCZNY BŁĄD TELEFONU: ' + err.message); }
         }
     </script>
 </body>
