@@ -986,13 +986,32 @@
                 list.innerHTML = '<li style="color:#aaa; padding: 10px 0; text-align:center;">Brak wyników w bazie.</li>';
                 return;
             }
-            results.forEach(song => {
+           results.forEach(song => {
                 const li = document.createElement('li');
                 li.className = 'clickable-item interactive';
-                li.style.cssText = 'font-size: 15px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+                li.style.cssText = 'font-size: 15px; overflow: hidden; display: flex; align-items: center; padding: 10px;';
+                
                 const isIsing = song.url && song.url.includes('ising.pl');
-                const badgeClass = isIsing ? 'badge badge-ising' : 'badge badge-yt';
-                li.innerHTML = `<span class="${badgeClass}">${isIsing ? 'iSing' : 'YT'}</span> <span style="vertical-align: middle;">${song.title}</span>`;
+                let thumbHtml = '<span style="font-size: 24px; margin-right: 12px; min-width: 45px; text-align: center;">🎵</span>';
+                
+                if (song.url) {
+                    if (isIsing) {
+                        thumbHtml = '<span class="badge badge-ising" style="margin-right: 12px; font-size: 11px; padding: 5px; min-width: 35px; text-align: center;">iSing</span>';
+                    } else {
+                        let vid = '';
+                        if (song.url.includes('v=')) vid = song.url.split('v=')[1].split('&')[0].substring(0, 11);
+                        else if (song.url.includes('youtu.be/')) vid = song.url.split('youtu.be/')[1].split('?')[0].substring(0, 11);
+                        
+                        if (vid) {
+                            thumbHtml = `<img src="https://img.youtube.com/vi/${vid}/default.jpg" style="width: 55px; height: 40px; border-radius: 6px; object-fit: cover; margin-right: 12px; background: #111; flex-shrink: 0;">`;
+                        } else {
+                            thumbHtml = '<span class="badge badge-yt" style="margin-right: 12px; font-size: 11px; padding: 5px; min-width: 35px; text-align: center;">YT</span>';
+                        }
+                    }
+                }
+
+                li.innerHTML = `${thumbHtml} <span style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${song.title}</span>`;
+                
                 li.onclick = () => sendPlayOrder(li, song.title);
                 list.appendChild(li);
             });
