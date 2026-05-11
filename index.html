@@ -114,7 +114,7 @@
             border: 1px solid #444;
             border-radius: 10px;
             padding: 15px 5px;
-            font-size: 24px;
+            font-size: 20px; /* Zmniejszono aby zmieścić więcej ikon */
             flex: 1;
             margin: 0 4px;
             cursor: pointer;
@@ -132,7 +132,7 @@
         .logout-btn {
             background: #b71c1c;
             border-color: #b71c1c;
-            max-width: 50px;
+            max-width: 45px;
         }
 
         /* ROZWIJANE PANELE */
@@ -390,8 +390,16 @@
             <button id="btnTabOrders" class="top-btn" onclick="toggleTab('orders')" title="Zamówienia">📦</button>
             <button id="btnTabSearch" class="top-btn" onclick="toggleTab('search')" title="Wyszukiwarka">🔍</button>
             <button id="btnTabList" class="top-btn" onclick="toggleTab('list')" title="Otwarte Karty">📑</button>
+            <button id="btnTabHistory" class="top-btn" onclick="toggleTab('history')" title="Historia">📖</button>
             <button id="btnTabControls" class="top-btn" onclick="toggleTab('controls')" title="Sterowanie">🎛️</button>
             <button class="top-btn logout-btn" onclick="logoutDJ()" title="Wyloguj się">🚪</button>
+        </div>
+        
+        <!-- Wskaźnik statusu poniżej górnego paska -->
+        <div style="position: relative; width: 100%; height: 0;">
+            <div id="connectionStatusDot" title="Brak danych z rozszerzenia (Offline)"
+                 style="position: absolute; top: 8px; right: 15px; width: 12px; height: 12px; border-radius: 50%; background: #f44336; box-shadow: 0 0 8px #f44336; transition: 0.3s; z-index: 10;">
+            </div>
         </div>
 
         <div id="tabOrders" class="panel" style="max-height: 60dvh; overflow-y: auto;">
@@ -421,8 +429,15 @@
                 </div>
             </div>
         </div>
+        
+        <!-- NOWA ZAKŁADKA HISTORII -->
+        <div id="tabHistory" class="panel" style="max-height: 60dvh; overflow-y: auto;">
+            <div id="historyListRemote" style="text-align: left;">
+                <div style="text-align: center; color: #aaa; padding: 20px;">⏳ Czekam na historię...</div>
+            </div>
+        </div>
 
-        <div id="tabControls" class="panel">
+        <div id="tabControls" class="panel" style="max-height: 60dvh; overflow-y: auto;">
             <div class="controls-grid">
                 <button id="btnPrev" class="btn" onclick="sendCmd('prev')">⏮️</button>
                 <button id="btnPlay" class="btn btn-play" onclick="sendCmd('play')">▶️</button>
@@ -788,7 +803,7 @@
         const autoPlayToggle = document.getElementById('autoPlayToggle');
 
         function toggleTab(tabName) {
-            const tabs = ['orders', 'search', 'list', 'controls'];
+            const tabs = ['orders', 'search', 'list', 'history', 'controls'];
             tabs.forEach(t => {
                 const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 const btn = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -890,11 +905,59 @@
                     if (orderCount === 0) list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">📭 Brak zamówień z ostatnich 8 godzin.</div>';
                 }
             });
+            
+            // Nasłuchiwanie Historii (Ostatnie 24H)
+            const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+            db.ref('historia').orderByChild('timestamp').startAt(cutoff).on('value', snap => {
+                const data = [];
+                snap.forEach(child => { data.push(child.val()); });
+                data.reverse(); // od najnowszych
+                const list = document.getElementById('historyListRemote');
+                if (list) {
+                    list.innerHTML = '';
+                    if(data.length === 0) {
+                        list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Brak wpisów z ostatnich 24h.</div>';
+                        return;
+                    }
+                    data.forEach(item => {
+                        list.innerHTML += `
+                        <div style="background: #2c2c2c; margin-bottom: 6px; padding: 12px; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: #888; font-weight: bold;">${item.time}</span>
+                            </div>
+                            <div style="font-weight: bold; font-size: 14px; color: #fff; margin-bottom: 4px;">${item.title}</div>
+                            <div style="font-size: 12px; color: #aaa;">🎤 ${item.singers || 'Wybór własny'}</div>
+                        </div>`;
+                    });
+                }
+            });
 
-            // Status zdalny z przeglądarki TV
+            // Status zdalny z przeglądarki TV i kropka aktywności
             db.ref('remote_status').on('value', (snapshot) => {
                 const data = snapshot.val();
-                if (!data) return;
+                const dot = document.getElementById('connectionStatusDot');
+                
+                if (!data) {
+                    if(dot) {
+                        dot.style.background = '#f44336';
+                        dot.style.boxShadow = '0 0 8px #f44336';
+                        dot.title = "Brak połączenia";
+                    }
+                    return;
+                }
+                
+                if(dot) {
+                    // Jeśli rozszerzenie aktywnie ustawiło status online na false
+                    if (data.online === false) {
+                        dot.style.background = '#f44336';
+                        dot.style.boxShadow = '0 0 8px #f44336';
+                        dot.title = "Rozszerzenie offline";
+                    } else {
+                        dot.style.background = '#4CAF50';
+                        dot.style.boxShadow = '0 0 8px #4CAF50';
+                        dot.title = "Rozszerzenie aktywne";
+                    }
+                }
 
                 if (data.mode && currentModeInternal !== data.mode) {
                     currentModeInternal = data.mode;
