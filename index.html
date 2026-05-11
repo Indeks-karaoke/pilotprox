@@ -114,7 +114,7 @@
             border: 1px solid #444;
             border-radius: 10px;
             padding: 15px 5px;
-            font-size: 20px; /* Zmniejszono aby zmieścić więcej ikon */
+            font-size: 20px; 
             flex: 1;
             margin: 0 4px;
             cursor: pointer;
@@ -397,7 +397,7 @@
         
         <!-- Wskaźnik statusu poniżej górnego paska -->
         <div style="position: relative; width: 100%; height: 0;">
-            <div id="connectionStatusDot" title="Brak danych z rozszerzenia (Offline)"
+            <div id="connectionStatusDot" title="Sprawdzanie połączenia..."
                  style="position: absolute; top: 8px; right: 15px; width: 12px; height: 12px; border-radius: 50%; background: #f44336; box-shadow: 0 0 8px #f44336; transition: 0.3s; z-index: 10;">
             </div>
         </div>
@@ -430,7 +430,7 @@
             </div>
         </div>
         
-        <!-- NOWA ZAKŁADKA HISTORII -->
+        <!-- ZAKŁADKA HISTORII -->
         <div id="tabHistory" class="panel" style="max-height: 60dvh; overflow-y: auto;">
             <div id="historyListRemote" style="text-align: left;">
                 <div style="text-align: center; color: #aaa; padding: 20px;">⏳ Czekam na historię...</div>
@@ -535,7 +535,7 @@
         </div>
     </div> <!-- KONIEC APP INTERFACE -->
 
-    <!-- MODAL EKRANU (BEZ ZMIAN) -->
+    <!-- MODAL EKRANU -->
     <div id="overlayModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
         <div class="modal-box" style="border-color: #9c27b0;">
@@ -733,22 +733,19 @@
         // Nasłuchiwanie zmian stanu logowania
         auth.onAuthStateChanged((user) => {
             if (user) {
-                // Zalogowano pomyślnie
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appInterface').style.display = 'flex';
                 if (!appInitialized) {
-                    initApp(); // Uruchamiamy aplikację dopiero po potwierdzeniu tożsamości
+                    initApp();
                     appInitialized = true;
                 }
             } else {
-                // Wylogowano
                 document.getElementById('loginScreen').style.display = 'flex';
                 document.getElementById('appInterface').style.display = 'none';
                 appInitialized = false;
             }
         });
 
-        // Funkcja logowania e-mailem i hasłem
         async function loginDJ() {
             const email = document.getElementById('djEmailInput').value.trim();
             const pass = document.getElementById('djPasswordInput').value;
@@ -763,7 +760,6 @@
 
             try {
                 await auth.signInWithEmailAndPassword(email, pass);
-                // Resztą zajmie się auth.onAuthStateChanged
                 btn.disabled = false;
                 btn.textContent = "Zaloguj się";
             } catch (err) {
@@ -774,7 +770,6 @@
             }
         }
 
-        // Funkcja wylogowywania
         function logoutDJ() {
             auth.signOut().then(() => {
                 location.reload();
@@ -794,6 +789,7 @@
         let lastCmdTs = 0; let unlockTimeout = null; let isPlaying = false;
         let waitingForSongChange = false; let lastSongName = ""; let currentModeInternal = "karaoke";
         let localBaza = []; let relX = 0; let relY = 0; let gistSounds = []; let currentlyPlayingUrl = null;
+        let lastAckFromExt = 0; // Czas ostatniej odpowiedzi od rozszerzenia
 
         // UI Elementy
         const uiMode = document.getElementById('uiMode'); const uiMain = document.getElementById('uiMainDisplay');
@@ -867,7 +863,7 @@
 
                 Object.keys(data).forEach(key => {
                     let o = data[key];
-                    o.id = key; // zachowaj ID Firebase
+                    o.id = key;
                     if ((now - o.timestamp) <= eightHoursInMs) {
                         let lowerTitle = o.tytul.toLowerCase().trim();
                         if (!uniqueOrders[lowerTitle] || !o.zagrane) {
@@ -894,11 +890,23 @@
                             <span class="order-singer" style="color: #444; font-weight: bold;">🎤 ${o.imie || 'Wybór własny'}${nat}</span>
                         `;
 
+                        // Zapisanie stylów i HTML aby móc je przywrócić
+                        const originalHTML = card.innerHTML;
+                        const originalBg = card.style.background;
+
                         card.onclick = () => {
                             sendCmd('play_order', o.tytul);
                             card.style.background = '#1b5e20';
                             card.innerHTML = `<div class="order-title" style="color: #fff; font-weight: 900;">Wysyłanie...</div>`;
-                            setTimeout(() => { toggleTab(''); }, 600);
+                            
+                            // Przywrócenie pierwotnego wyglądu karty po chwili
+                            setTimeout(() => { 
+                                card.style.background = originalBg;
+                                card.innerHTML = originalHTML;
+                            }, 800);
+
+                            // Zamknięcie panelu (opóźnione nieco bardziej by widać było błysk)
+                            setTimeout(() => { toggleTab(''); }, 900);
                         };
                         list.appendChild(card);
                     });
@@ -911,7 +919,7 @@
             db.ref('historia').orderByChild('timestamp').startAt(cutoff).on('value', snap => {
                 const data = [];
                 snap.forEach(child => { data.push(child.val()); });
-                data.reverse(); // od najnowszych
+                data.reverse(); 
                 const list = document.getElementById('historyListRemote');
                 if (list) {
                     list.innerHTML = '';
@@ -932,32 +940,13 @@
                 }
             });
 
-            // Status zdalny z przeglądarki TV i kropka aktywności
+            // Status zdalny z przeglądarki TV
             db.ref('remote_status').on('value', (snapshot) => {
                 const data = snapshot.val();
-                const dot = document.getElementById('connectionStatusDot');
-                
-                if (!data) {
-                    if(dot) {
-                        dot.style.background = '#f44336';
-                        dot.style.boxShadow = '0 0 8px #f44336';
-                        dot.title = "Brak połączenia";
-                    }
-                    return;
-                }
-                
-                if(dot) {
-                    // Jeśli rozszerzenie aktywnie ustawiło status online na false
-                    if (data.online === false) {
-                        dot.style.background = '#f44336';
-                        dot.style.boxShadow = '0 0 8px #f44336';
-                        dot.title = "Rozszerzenie offline";
-                    } else {
-                        dot.style.background = '#4CAF50';
-                        dot.style.boxShadow = '0 0 8px #4CAF50';
-                        dot.title = "Rozszerzenie aktywne";
-                    }
-                }
+                if (!data) return;
+
+                // Aktualizacja czasu ostatniej wiadomości na potrzeby pingowania
+                if (data.lastAckTs) lastAckFromExt = data.lastAckTs;
 
                 if (data.mode && currentModeInternal !== data.mode) {
                     currentModeInternal = data.mode;
@@ -1030,6 +1019,30 @@
                     }
                 }
             });
+
+            // MECHANIZM PINGOWANIA - sprawdzanie aktywności rozszerzenia
+            setInterval(() => {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const now = Date.now();
+                // Pinguj tylko, jeśli nie wysłano innego polecenia przez ostatnie 5s (aby nie nadpisywać ważnych komend)
+                if (now - lastCmdTs > 5000) {
+                    db.ref('remote_cmd').set({ action: 'ping', dj: user.email, ts: now }).catch(e => console.error(e));
+                }
+                
+                // Sprawdzenie statusu po chwili na odpowiedź od rozszerzenia
+                setTimeout(() => {
+                    // Jeśli rozszerzenie odpisało w ciągu ostatnich 15 sekund, uznajemy je za żywe
+                    const isAlive = (Date.now() - lastAckFromExt) < 15000;
+                    const dot = document.getElementById('connectionStatusDot');
+                    if (dot) {
+                        dot.style.background = isAlive ? '#4CAF50' : '#f44336';
+                        dot.style.boxShadow = isAlive ? '0 0 8px #4CAF50' : '0 0 8px #f44336';
+                        dot.title = isAlive ? "Rozszerzenie aktywne" : "Brak odpowiedzi (Offline)";
+                    }
+                }, 3000);
+            }, 10000);
         } // End initApp
 
         function clearSearch() {
@@ -1109,7 +1122,7 @@
 
         function sendCmd(action, value = null) {
             const user = auth.currentUser;
-            if (!user) { location.reload(); return; } // Wyrzuć jeśli nagle wylogowano
+            if (!user) { location.reload(); return; }
 
             if (action === 'play') {
                 isPlaying = !isPlaying;
@@ -1142,7 +1155,6 @@
                 unlockTimeout = setTimeout(unlockButtons, 1500);
             }
 
-            // Wysyłamy e-mail DJ'a zamiast PIN'u
             db.ref('remote_cmd').set({ action: action, value: value, dj: user.email, ts: lastCmdTs }).catch(e => { console.error(e); });
             if (navigator.vibrate) navigator.vibrate(40);
         }
