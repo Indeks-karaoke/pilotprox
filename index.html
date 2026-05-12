@@ -668,6 +668,15 @@
     <div id="soundsModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
         <div class="modal-box" style="border-color: #03dac6;">
+            
+            <!-- NOWE: Przełącznik Celu Odtwarzania -->
+            <div style="padding: 15px 15px 0 15px; margin-bottom: -5px;">
+                <div style="display: flex; background: #222; border-radius: 8px; border: 1px solid #333; overflow: hidden;">
+                    <button id="targetExtBtn" onclick="setSoundTarget('ext')" style="flex: 1; padding: 10px; background: #03dac6; color: #000; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;">💻 Komputer</button>
+                    <button id="targetPhoneBtn" onclick="setSoundTarget('phone')" style="flex: 1; padding: 10px; background: transparent; color: #aaa; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;">📱 Telefon (Podgląd)</button>
+                </div>
+            </div>
+
             <div style="padding: 15px 15px 0 15px;">
                 <div
                     style="display: flex; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 8px; border: 1px solid #333;">
@@ -776,14 +785,50 @@
             });
         }
 
-        // Zmienne App
+        // Zmienne i stan dźwięków
+        let soundTarget = 'ext'; // 'ext' (komputer) lub 'phone' (podgląd lokalny)
+        let localAudio = new Audio(); // Odtwarzacz dla telefonu
         const savedVol = localStorage.getItem('sfx_vol');
-        if (savedVol !== null) document.getElementById('volSlider').value = savedVol * 100;
+        if (savedVol !== null) {
+            document.getElementById('volSlider').value = savedVol * 100;
+            localAudio.volume = savedVol;
+        }
+
+        function setSoundTarget(target) {
+            if (target === soundTarget) return;
+
+            // Zatrzymaj obecne odtwarzanie przy przełączaniu, aby uniknąć chaosu
+            if (soundTarget === 'phone' && !localAudio.paused) {
+                localAudio.pause();
+                localAudio.currentTime = 0;
+            } else if (soundTarget === 'ext' && currentlyPlayingUrl) {
+                sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() });
+            }
+            currentlyPlayingUrl = null;
+            document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing'));
+
+            soundTarget = target;
+            const btnExt = document.getElementById('targetExtBtn');
+            const btnPhone = document.getElementById('targetPhoneBtn');
+
+            if (target === 'ext') {
+                btnExt.style.background = '#03dac6';
+                btnExt.style.color = '#000';
+                btnPhone.style.background = 'transparent';
+                btnPhone.style.color = '#aaa';
+            } else {
+                btnExt.style.background = 'transparent';
+                btnExt.style.color = '#aaa';
+                btnPhone.style.background = '#03dac6';
+                btnPhone.style.color = '#000';
+            }
+        }
 
         function changeVolume(val) {
             const vol = parseInt(val) / 100;
             localStorage.setItem('sfx_vol', vol);
             sendCmd('set_volume', vol);
+            localAudio.volume = vol; // Zmiana głośności również dla odtwarzacza lokalnego
         }
 
         let lastCmdTs = 0; let unlockTimeout = null; let isPlaying = false;
@@ -1216,11 +1261,51 @@
                 btn.className = 'sound-grid-btn'; btn.id = 'sound-btn-' + i; btn.textContent = sound.title;
                 btn.onclick = () => {
                     if (currentlyPlayingUrl === sound.url) {
-                        sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() }); currentlyPlayingUrl = null; btn.classList.remove('playing');
+                        // ZATRZYMYWANIE
+                        if (soundTarget === 'phone') {
+                            localAudio.pause();
+                            localAudio.currentTime = 0;
+                        } else {
+                            sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() }); 
+                        }
+                        currentlyPlayingUrl = null; 
+                        btn.classList.remove('playing');
                     } else {
-                        sendCmd('remote_audio', { action: 'play', url: sound.url, timestamp: Date.now() }); currentlyPlayingUrl = sound.url;
-                        document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing')); btn.classList.add('playing');
-                        setTimeout(() => { if (currentlyPlayingUrl === sound.url) { currentlyPlayingUrl = null; btn.classList.remove('playing'); } }, 8000);
+                        // ODTWARZANIE
+                        // Najpierw zatrzymaj poprzedni dźwięk
+                        if (currentlyPlayingUrl) {
+                             if (soundTarget === 'phone') {
+                                localAudio.pause();
+                                localAudio.currentTime = 0;
+                             } else {
+                                sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() });
+                             }
+                        }
+
+                        currentlyPlayingUrl = sound.url;
+                        document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing')); 
+                        btn.classList.add('playing');
+
+                        if (soundTarget === 'phone') {
+                            localAudio.src = sound.url;
+                            localAudio.volume = document.getElementById('volSlider').value / 100;
+                            localAudio.play().catch(e => console.error("Błąd odtwarzania:", e));
+                            
+                            localAudio.onended = () => {
+                                if (currentlyPlayingUrl === sound.url) {
+                                    currentlyPlayingUrl = null;
+                                    btn.classList.remove('playing');
+                                }
+                            };
+                        } else {
+                            sendCmd('remote_audio', { action: 'play', url: sound.url, timestamp: Date.now() }); 
+                            setTimeout(() => { 
+                                if (soundTarget === 'ext' && currentlyPlayingUrl === sound.url) { 
+                                    currentlyPlayingUrl = null; 
+                                    btn.classList.remove('playing'); 
+                                } 
+                            }, 8000);
+                        }
                     }
                     if (navigator.vibrate) navigator.vibrate(20);
                 };
