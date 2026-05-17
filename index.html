@@ -114,7 +114,7 @@
             border: 1px solid #444;
             border-radius: 10px;
             padding: 15px 5px;
-            font-size: 20px; 
+            font-size: 20px;
             flex: 1;
             margin: 0 4px;
             cursor: pointer;
@@ -394,11 +394,18 @@
             <button id="btnTabControls" class="top-btn" onclick="toggleTab('controls')" title="Sterowanie">🎛️</button>
             <button class="top-btn logout-btn" onclick="logoutDJ()" title="Wyloguj się">🚪</button>
         </div>
-        
-        <!-- Wskaźnik statusu poniżej górnego paska -->
+
+        <!-- Wskaźniki statusu poniżej górnego paska -->
         <div style="position: relative; width: 100%; height: 0;">
+            <!-- NOWE: Wskaźnik audio (lewy górny róg) -->
+            <div id="musicStatusDot" title="Sprawdzanie audio..."
+                style="position: absolute; top: 10px; left: 15px; font-size: 18px; opacity: 0.3; filter: grayscale(100%); transition: 0.3s; z-index: 10;">
+                🔇
+            </div>
+
+            <!-- ISTNIEJĄCE: Wskaźnik połączenia (prawy górny róg) -->
             <div id="connectionStatusDot" title="Sprawdzanie połączenia..."
-                 style="position: absolute; top: 8px; right: 15px; width: 12px; height: 12px; border-radius: 50%; background: #f44336; box-shadow: 0 0 8px #f44336; transition: 0.3s; z-index: 10;">
+                style="position: absolute; top: 14px; right: 15px; width: 12px; height: 12px; border-radius: 50%; background: #f44336; box-shadow: 0 0 8px #f44336; transition: 0.3s; z-index: 10;">
             </div>
         </div>
 
@@ -429,7 +436,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- ZAKŁADKA HISTORII -->
         <div id="tabHistory" class="panel" style="max-height: 60dvh; overflow-y: auto;">
             <div id="historyListRemote" style="text-align: left;">
@@ -668,12 +675,17 @@
     <div id="soundsModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.9); z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding:15px; box-sizing:border-box;">
         <div class="modal-box" style="border-color: #03dac6;">
-            
+
             <!-- NOWE: Przełącznik Celu Odtwarzania -->
             <div style="padding: 15px 15px 0 15px; margin-bottom: -5px;">
-                <div style="display: flex; background: #222; border-radius: 8px; border: 1px solid #333; overflow: hidden;">
-                    <button id="targetExtBtn" onclick="setSoundTarget('ext')" style="flex: 1; padding: 10px; background: #03dac6; color: #000; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;">💻 Komputer</button>
-                    <button id="targetPhoneBtn" onclick="setSoundTarget('phone')" style="flex: 1; padding: 10px; background: transparent; color: #aaa; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;">📱 Telefon (Podgląd)</button>
+                <div
+                    style="display: flex; background: #222; border-radius: 8px; border: 1px solid #333; overflow: hidden;">
+                    <button id="targetExtBtn" onclick="setSoundTarget('ext')"
+                        style="flex: 1; padding: 10px; background: #03dac6; color: #000; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;">💻
+                        Komputer</button>
+                    <button id="targetPhoneBtn" onclick="setSoundTarget('phone')"
+                        style="flex: 1; padding: 10px; background: transparent; color: #aaa; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;">📱
+                        Telefon (Podgląd)</button>
                 </div>
             </div>
 
@@ -731,7 +743,7 @@
             projectId: "indeks-karaoke",
             storageBucket: "indeks-karaoke.firebasestorage.app",
             messagingSenderId: "870801348066",
-            appId: "1:870801348066:web:1eb45469e18a2ea45e15bb"
+            appId: "1:870801348066:web:1978e917b7674e7bd1293f"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -834,7 +846,8 @@
         let lastCmdTs = 0; let unlockTimeout = null; let isPlaying = false;
         let waitingForSongChange = false; let lastSongName = ""; let currentModeInternal = "karaoke";
         let localBaza = []; let relX = 0; let relY = 0; let gistSounds = []; let currentlyPlayingUrl = null;
-        let lastAckFromExt = 0; // Czas ostatniej odpowiedzi od rozszerzenia
+        let lastAckFromExt = 0; // Czas ostatniej odpowiedzi od rozszerzenia (teraz to heartbeat audio)
+        let knownAudioPlaying = false; // Dodaj tę linijkę do zmiennych globalnych
 
         // UI Elementy
         const uiMode = document.getElementById('uiMode'); const uiMain = document.getElementById('uiMainDisplay');
@@ -943,9 +956,9 @@
                             sendCmd('play_order', o.tytul);
                             card.style.background = '#1b5e20';
                             card.innerHTML = `<div class="order-title" style="color: #fff; font-weight: 900;">Wysyłanie...</div>`;
-                            
+
                             // Przywrócenie pierwotnego wyglądu karty po chwili
-                            setTimeout(() => { 
+                            setTimeout(() => {
                                 card.style.background = originalBg;
                                 card.innerHTML = originalHTML;
                             }, 800);
@@ -958,17 +971,17 @@
                     if (orderCount === 0) list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">📭 Brak zamówień z ostatnich 8 godzin.</div>';
                 }
             });
-            
+
             // Nasłuchiwanie Historii (Ostatnie 24H)
             const cutoff = Date.now() - (24 * 60 * 60 * 1000);
             db.ref('historia').orderByChild('timestamp').startAt(cutoff).on('value', snap => {
                 const data = [];
                 snap.forEach(child => { data.push(child.val()); });
-                data.reverse(); 
+                data.reverse();
                 const list = document.getElementById('historyListRemote');
                 if (list) {
                     list.innerHTML = '';
-                    if(data.length === 0) {
+                    if (data.length === 0) {
                         list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Brak wpisów z ostatnich 24h.</div>';
                         return;
                     }
@@ -985,13 +998,37 @@
                 }
             });
 
-            // Status zdalny z przeglądarki TV
+            // Status zdalny z przeglądarki TV (z nowym heartbeaten co 3s)
             db.ref('remote_status').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
 
-                // Aktualizacja czasu ostatniej wiadomości na potrzeby pingowania
-                if (data.lastAckTs) lastAckFromExt = data.lastAckTs;
+                // --- AKTUALIZACJA CZASU OSTATNIEGO SYGNAŁU ---
+                if (data.lastHeartbeatTs) lastAckFromExt = data.lastHeartbeatTs; // Nowy system
+                else if (data.lastAckTs) lastAckFromExt = data.lastAckTs; // Fallback do starego systemu
+
+              // --- AKTUALIZACJA WSKAŹNIKA AUDIO (NOWE - ZAPAMIĘTYWANIE STANU) ---
+            // Aktualizujemy znaną wartość TYLKO, gdy Firebase nam ją wyraźnie przysłał
+            if (data.hasOwnProperty('isAudioPlaying')) {
+                knownAudioPlaying = data.isAudioPlaying;
+            }
+
+            const musicDot = document.getElementById('musicStatusDot');
+            if (musicDot) {
+                if (knownAudioPlaying) {
+                    musicDot.textContent = '🎵';
+                    musicDot.style.filter = 'none';
+                    musicDot.style.opacity = '1';
+                    musicDot.style.textShadow = '0 0 10px #03dac6';
+                    musicDot.title = 'Muzyka gra!';
+                } else {
+                    musicDot.textContent = '🔇';
+                    musicDot.style.filter = 'grayscale(100%)';
+                    musicDot.style.opacity = '0.3';
+                    musicDot.style.textShadow = 'none';
+                    musicDot.title = 'Cisza...';
+                }
+            }
 
                 if (data.mode && currentModeInternal !== data.mode) {
                     currentModeInternal = data.mode;
@@ -1065,29 +1102,19 @@
                 }
             });
 
-            // MECHANIZM PINGOWANIA - sprawdzanie aktywności rozszerzenia
+            // NOWY PASYWNY MECHANIZM SPRAWDZANIA AKTYWNOŚCI ROZSZERZENIA
+            // Nie musimy już wysyłać komend PING do bazy, tylko sprawdzamy czy rozszerzenie
+            // zaktualizowało timestamp (heartbeat) w ciągu ostatnich np. 12 sekund
             setInterval(() => {
-                const user = auth.currentUser;
-                if (!user) return;
-                
-                const now = Date.now();
-                // Pinguj tylko, jeśli nie wysłano innego polecenia przez ostatnie 5s (aby nie nadpisywać ważnych komend)
-                if (now - lastCmdTs > 5000) {
-                    db.ref('remote_cmd').set({ action: 'ping', dj: user.email, ts: now }).catch(e => console.error(e));
+                const isAlive = (Date.now() - lastAckFromExt) < 12000;
+                const dot = document.getElementById('connectionStatusDot');
+                if (dot) {
+                    dot.style.background = isAlive ? '#4CAF50' : '#f44336';
+                    dot.style.boxShadow = isAlive ? '0 0 8px #4CAF50' : '0 0 8px #f44336';
+                    dot.title = isAlive ? "Rozszerzenie aktywne" : "Brak odpowiedzi (Offline)";
                 }
-                
-                // Sprawdzenie statusu po chwili na odpowiedź od rozszerzenia
-                setTimeout(() => {
-                    // Jeśli rozszerzenie odpisało w ciągu ostatnich 15 sekund, uznajemy je za żywe
-                    const isAlive = (Date.now() - lastAckFromExt) < 15000;
-                    const dot = document.getElementById('connectionStatusDot');
-                    if (dot) {
-                        dot.style.background = isAlive ? '#4CAF50' : '#f44336';
-                        dot.style.boxShadow = isAlive ? '0 0 8px #4CAF50' : '0 0 8px #f44336';
-                        dot.title = isAlive ? "Rozszerzenie aktywne" : "Brak odpowiedzi (Offline)";
-                    }
-                }, 3000);
-            }, 10000);
+            }, 3000);
+
         } // End initApp
 
         function clearSearch() {
@@ -1107,14 +1134,14 @@
                 list.innerHTML = '<li style="color:#aaa; padding: 10px 0; text-align:center;">Brak wyników w bazie.</li>';
                 return;
             }
-           results.forEach(song => {
+            results.forEach(song => {
                 const li = document.createElement('li');
                 li.className = 'clickable-item interactive';
                 li.style.cssText = 'font-size: 15px; overflow: hidden; display: flex; align-items: center; padding: 10px;';
-                
+
                 const isIsing = song.url && song.url.includes('ising.pl');
                 let thumbHtml = '<span style="font-size: 24px; margin-right: 12px; min-width: 45px; text-align: center;">🎵</span>';
-                
+
                 if (song.url) {
                     if (isIsing) {
                         thumbHtml = '<span class="badge badge-ising" style="margin-right: 12px; font-size: 11px; padding: 5px; min-width: 35px; text-align: center;">iSing</span>';
@@ -1122,7 +1149,7 @@
                         let vid = '';
                         if (song.url.includes('v=')) vid = song.url.split('v=')[1].split('&')[0].substring(0, 11);
                         else if (song.url.includes('youtu.be/')) vid = song.url.split('youtu.be/')[1].split('?')[0].substring(0, 11);
-                        
+
                         if (vid) {
                             thumbHtml = `<img src="https://img.youtube.com/vi/${vid}/default.jpg" style="width: 55px; height: 40px; border-radius: 6px; object-fit: cover; margin-right: 12px; background: #111; flex-shrink: 0;">`;
                         } else {
@@ -1132,7 +1159,7 @@
                 }
 
                 li.innerHTML = `${thumbHtml} <span style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${song.title}</span>`;
-                
+
                 li.onclick = () => sendPlayOrder(li, song.title);
                 list.appendChild(li);
             });
@@ -1266,31 +1293,31 @@
                             localAudio.pause();
                             localAudio.currentTime = 0;
                         } else {
-                            sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() }); 
+                            sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() });
                         }
-                        currentlyPlayingUrl = null; 
+                        currentlyPlayingUrl = null;
                         btn.classList.remove('playing');
                     } else {
                         // ODTWARZANIE
                         // Najpierw zatrzymaj poprzedni dźwięk
                         if (currentlyPlayingUrl) {
-                             if (soundTarget === 'phone') {
+                            if (soundTarget === 'phone') {
                                 localAudio.pause();
                                 localAudio.currentTime = 0;
-                             } else {
+                            } else {
                                 sendCmd('remote_audio', { action: 'stop', timestamp: Date.now() });
-                             }
+                            }
                         }
 
                         currentlyPlayingUrl = sound.url;
-                        document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing')); 
+                        document.querySelectorAll('.sound-grid-btn').forEach(b => b.classList.remove('playing'));
                         btn.classList.add('playing');
 
                         if (soundTarget === 'phone') {
                             localAudio.src = sound.url;
                             localAudio.volume = document.getElementById('volSlider').value / 100;
                             localAudio.play().catch(e => console.error("Błąd odtwarzania:", e));
-                            
+
                             localAudio.onended = () => {
                                 if (currentlyPlayingUrl === sound.url) {
                                     currentlyPlayingUrl = null;
@@ -1298,12 +1325,12 @@
                                 }
                             };
                         } else {
-                            sendCmd('remote_audio', { action: 'play', url: sound.url, timestamp: Date.now() }); 
-                            setTimeout(() => { 
-                                if (soundTarget === 'ext' && currentlyPlayingUrl === sound.url) { 
-                                    currentlyPlayingUrl = null; 
-                                    btn.classList.remove('playing'); 
-                                } 
+                            sendCmd('remote_audio', { action: 'play', url: sound.url, timestamp: Date.now() });
+                            setTimeout(() => {
+                                if (soundTarget === 'ext' && currentlyPlayingUrl === sound.url) {
+                                    currentlyPlayingUrl = null;
+                                    btn.classList.remove('playing');
+                                }
                             }, 8000);
                         }
                     }
