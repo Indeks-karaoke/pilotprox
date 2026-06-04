@@ -600,12 +600,17 @@
                         <option value="fullscreen">🖥️ Tryb: Pełny Ekran</option>
                     </select>
                     <div id="trackpadControls">
-                        <select id="tvAspect"
-                            onchange="document.getElementById('posArea').style.aspectRatio = this.value;"
-                            style="width:100%; background:#1a1a1a; color:#aaa; border:1px solid #555; border-radius:6px; padding:6px; margin-bottom:15px; font-size: 12px;">
-                            <option value="16/9">📺 Proporcje TV: Panoramiczny (16:9)</option>
-                            <option value="4/3">📺 Proporcje TV: Kwadratowy (4:3)</option>
-                        </select>
+                        <div style="display:flex; gap:8px; margin-bottom:15px; align-items: center; flex-wrap: wrap;">
+                            <select id="tvAspect"
+                                onchange="document.getElementById('posArea').style.aspectRatio = this.value;"
+                                style="flex: 1; min-width: 130px; background:#1a1a1a; color:#aaa; border:1px solid #555; border-radius:6px; padding:8px; font-size: 12px; margin: 0;">
+                                <option value="16/9">📺 Proporcje: 16:9</option>
+                                <option value="4/3">📺 Proporcje: 4:3</option>
+                            </select>
+                            <label style="flex: 1; min-width: 130px; justify-content: center; font-size: 11px; cursor: pointer; color: #ccc; display: flex; align-items: center; gap: 6px; background: #222; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; box-sizing: border-box;">
+                                <input type="checkbox" id="ytFix" style="margin: 0; transform: scale(1.2);"> Korekta okna (YT/iSing)
+                            </label>
+                        </div>
                         <div style="display:flex; gap:10px; margin-bottom:10px; align-items: flex-end;">
                             <div style="flex:1;">
                                 <label style="font-size:10px; color:#aaa;">Szerokość: <span
@@ -632,26 +637,29 @@
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:10px;">
-                    <div
-                        style="display:flex; flex-direction:column; gap:5px; background:#222; padding:10px; border-radius:8px;">
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <span style="flex:1; font-size:13px; color:#ddd; font-weight:bold;">📺 Ekran 2 (TV)</span>
-                            <button onclick="sendOverlay(true, 'tv')"
-                                style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">➕
-                                Nowe Okno</button>
+                    <div style="display:flex; flex-direction:column; gap:5px; background:#222; padding:10px; border-radius:8px;">
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
+                            <span style="flex:1; min-width: 100%; font-size:13px; color:#ddd; font-weight:bold; margin-bottom: 4px;">📺 Ekran 2 (TV)</span>
+                            <button onclick="sendOverlay(true, 'tv', false)"
+                                style="flex: 1; background:#4CAF50; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️ Aktualizuj Obecną</button>
+                            <button onclick="sendOverlay(true, 'tv', true)"
+                                style="flex: 1; background:#2196F3; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;" title="Dodaje nową warstwę obok starych">➕ Dodaj Nową Warstwę</button>
                         </div>
-                        <div id="dynamic-tv-buttons"
-                            style="display:flex; flex-direction:column; gap:5px; margin-top:5px;"></div>
+                        <button onclick="sendOverlay(false, 'tv', false)"
+                            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; margin-top: 5px;">✖ Ukryj Obecną (TV)</button>
+                        <div id="dynamic-tv-buttons" style="display:flex; flex-direction:column; gap:5px; margin-top:5px;"></div>
                     </div>
-                    <div
-                        style="display:flex; gap:8px; align-items:center; background:#222; padding:10px; border-radius:8px;">
-                        <span style="flex:1; font-size:13px; color:#ddd; font-weight:bold;">🖥️ Ekran 3 (Laptop)</span>
-                        <button onclick="sendOverlay(true, 'roboczy')"
-                            style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️
-                            Pokaż</button>
-                        <button onclick="sendOverlay(false, 'roboczy')"
-                            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">✖
-                            Ukryj</button>
+                    
+                    <div style="display:flex; flex-direction:column; gap:5px; background:#222; padding:10px; border-radius:8px;">
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
+                            <span style="flex:1; min-width: 100%; font-size:13px; color:#ddd; font-weight:bold; margin-bottom: 4px;">🖥️ Ekran 3 (Laptop)</span>
+                            <button onclick="sendOverlay(true, 'roboczy', false)"
+                                style="flex: 1; background:#4CAF50; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">👁️ Aktualizuj Obecną</button>
+                            <button onclick="sendOverlay(true, 'roboczy', true)"
+                                style="flex: 1; background:#2196F3; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;" title="Dodaje nową warstwę obok starych">➕ Dodaj Nową Warstwę</button>
+                        </div>
+                        <button onclick="sendOverlay(false, 'roboczy', false)"
+                            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; margin-top: 5px;">✖ Ukryj Obecną (Laptop)</button>
                     </div>
                 </div>
             </div>
@@ -854,6 +862,11 @@
         }
 
         let lastCmdTs = 0; let unlockTimeout = null; let isPlaying = false;
+        
+        // Zmienne z ID dla obecnych warstw roboczych (aby "Aktualizuj" trafiało w to samo ID)
+        let currentTvOverlayId = 'tv_layer_default';
+        let currentRoboczyId = 'roboczy_layer_default';
+        
         let waitingForSongChange = false; let lastSongName = ""; let currentModeInternal = "karaoke";
         let localBaza = []; let relX = 0; let relY = 0; let gistSounds = []; let currentlyPlayingUrl = null;
         let lastAckFromExt = 0; // Czas ostatniej odpowiedzi od rozszerzenia (teraz to heartbeat audio)
@@ -1013,31 +1026,29 @@
                 const data = snapshot.val();
                 if (!data) return;
 
-                // --- AKTUALIZACJA CZASU OSTATNIEGO SYGNAŁU ---
-                if (data.lastHeartbeatTs) lastAckFromExt = data.lastHeartbeatTs; // Nowy system
-                else if (data.lastAckTs) lastAckFromExt = data.lastAckTs; // Fallback do starego systemu
+                if (data.lastHeartbeatTs) lastAckFromExt = data.lastHeartbeatTs; 
+                else if (data.lastAckTs) lastAckFromExt = data.lastAckTs; 
 
-              // --- AKTUALIZACJA WSKAŹNIKA AUDIO (NOWE - ZAPAMIĘTYWANIE STANU) ---
-            if (data.hasOwnProperty('isAudioPlaying')) {
-                knownAudioPlaying = data.isAudioPlaying;
-            }
-
-            const musicDot = document.getElementById('musicStatusDot');
-            if (musicDot) {
-                if (knownAudioPlaying) {
-                    musicDot.textContent = '🎵';
-                    musicDot.style.filter = 'none';
-                    musicDot.style.opacity = '1';
-                    musicDot.style.textShadow = '0 0 10px #03dac6';
-                    musicDot.title = 'Muzyka gra!';
-                } else {
-                    musicDot.textContent = '🔇';
-                    musicDot.style.filter = 'grayscale(100%)';
-                    musicDot.style.opacity = '0.3';
-                    musicDot.style.textShadow = 'none';
-                    musicDot.title = 'Cisza...';
+                if (data.hasOwnProperty('isAudioPlaying')) {
+                    knownAudioPlaying = data.isAudioPlaying;
                 }
-            }
+
+                const musicDot = document.getElementById('musicStatusDot');
+                if (musicDot) {
+                    if (knownAudioPlaying) {
+                        musicDot.textContent = '🎵';
+                        musicDot.style.filter = 'none';
+                        musicDot.style.opacity = '1';
+                        musicDot.style.textShadow = '0 0 10px #03dac6';
+                        musicDot.title = 'Muzyka gra!';
+                    } else {
+                        musicDot.textContent = '🔇';
+                        musicDot.style.filter = 'grayscale(100%)';
+                        musicDot.style.opacity = '0.3';
+                        musicDot.style.textShadow = 'none';
+                        musicDot.title = 'Cisza...';
+                    }
+                }
 
                 if (data.mode && currentModeInternal !== data.mode) {
                     currentModeInternal = data.mode;
@@ -1046,8 +1057,7 @@
 
                 const newTitle = data.currentName || "Brak utworu";
                 if (data.hasOwnProperty('autoPlay')) autoPlayToggle.checked = data.autoPlay;
-                
-                // UŻYCIE ZBEZPIECZONEJ FUNKCJI DO KART
+
                 renderOpenTabsList(data.openTabs);
 
                 if (waitingForSongChange) {
@@ -1065,8 +1075,7 @@
                     uiMain.style.display = 'none'; uiSub.textContent = newTitle; uiSub.style.fontSize = '12vw';
                     nextKaraokeContainer.style.display = 'block'; nextKonkursContainer.style.display = 'none'; loteriaContainer.style.display = 'none';
                     uiNext.textContent = data.nextName || "-";
-                    
-                    // BEZPIECZNE POBIERANIE KOLEJKI
+
                     uiQueue.innerHTML = '';
                     const safeQueue = Array.isArray(data.queueList) ? data.queueList : Object.values(data.queueList || {});
                     safeQueue.forEach(song => {
@@ -1083,8 +1092,7 @@
                 else if (data.mode === 'loteria') {
                     uiMain.style.display = 'none'; uiSub.textContent = "LOSOWANIE"; uiSub.style.fontSize = '15vw';
                     nextKaraokeContainer.style.display = 'none'; nextKonkursContainer.style.display = 'none'; loteriaContainer.style.display = 'block';
-                    
-                    // BEZPIECZNE POBIERANIE ZWYCIĘZCÓW
+
                     const winnersList = document.getElementById('winnersListRemote'); winnersList.innerHTML = '';
                     const safeWinners = Array.isArray(data.winners) ? data.winners : Object.values(data.winners || {});
                     if (safeWinners.length > 0) {
@@ -1100,16 +1108,21 @@
                     }
                 }
 
-                // Wizja / Okna - BEZPIECZNE POBIERANIE
+                // Wizja / Okna 
                 const dynamicTvContainer = document.getElementById('dynamic-tv-buttons');
                 if (dynamicTvContainer) {
                     dynamicTvContainer.innerHTML = '';
                     const safeOverlays = Array.isArray(data.activeTvOverlays) ? data.activeTvOverlays : Object.values(data.activeTvOverlays || {});
                     if (safeOverlays.length > 0) {
-                        safeOverlays.forEach(overlayId => {
+                        safeOverlays.forEach((overlayId, index) => {
                             const btn = document.createElement('button');
                             btn.style.cssText = "background:#f44336; color:white; border:none; padding:10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer; text-align:left; display:flex; justify-content:space-between;";
-                            const labelText = overlayId === 'local_ext_msg' ? 'Wiadomość z panelu DJ-a' : 'Wiadomość z telefonu';
+                            
+                            let labelText = "Grafika TV";
+                            if (overlayId === 'tv_main_window') labelText = 'Całe Okno TV (Wszystkie grafiki)';
+                            else if (overlayId === 'local_ext_msg') labelText = 'Wiadomość z panelu DJ-a (PC)';
+                            else if (overlayId.includes('tv_layer_')) labelText = `Grafika TV (Warstwa ${index + 1})`;
+
                             btn.innerHTML = `<span>✖ Zamknij: ${labelText}</span>`;
                             btn.onclick = () => { sendCmd('tv_overlay_close', { id: overlayId }); if (navigator.vibrate) navigator.vibrate(20); };
                             dynamicTvContainer.appendChild(btn);
@@ -1118,7 +1131,6 @@
                 }
             });
 
-            // NOWY PASYWNY MECHANIZM SPRAWDZANIA AKTYWNOŚCI ROZSZERZENIA
             setInterval(() => {
                 const isAlive = (Date.now() - lastAckFromExt) < 12000;
                 const dot = document.getElementById('connectionStatusDot');
@@ -1129,7 +1141,7 @@
                 }
             }, 3000);
 
-        } // End initApp
+        }
 
         function clearSearch() {
             const input = document.getElementById('searchInputRemote');
@@ -1187,15 +1199,13 @@
             setTimeout(() => { toggleTab(''); }, 700);
         }
 
-        // ZABEZPIECZONA FUNKCJA RENDEROWANIA KART
         function renderOpenTabsList(rawTabs) {
             const container = document.getElementById('openTabsContainer');
-            // Zabezpieczenie na wypadek, gdyby Firebase zepsuł strukturę tablicy po skasowaniu karty
             const safeTabs = Array.isArray(rawTabs) ? rawTabs : Object.values(rawTabs || {});
-            
-            if (safeTabs.length === 0) { 
-                container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Brak otwartych kart z muzyką.</div>'; 
-                return; 
+
+            if (safeTabs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Brak otwartych kart z muzyką.</div>';
+                return;
             }
             let html = '';
             safeTabs.forEach((t, i) => {
@@ -1309,7 +1319,6 @@
                 btn.className = 'sound-grid-btn'; btn.id = 'sound-btn-' + i; btn.textContent = sound.title;
                 btn.onclick = () => {
                     if (currentlyPlayingUrl === sound.url) {
-                        // ZATRZYMYWANIE
                         if (soundTarget === 'phone') {
                             localAudio.pause();
                             localAudio.currentTime = 0;
@@ -1319,7 +1328,6 @@
                         currentlyPlayingUrl = null;
                         btn.classList.remove('playing');
                     } else {
-                        // ODTWARZANIE
                         if (currentlyPlayingUrl) {
                             if (soundTarget === 'phone') {
                                 localAudio.pause();
@@ -1389,7 +1397,6 @@
             box.style.left = relX + "%"; box.style.top = relY + "%";
         }
 
-       // --- NOWY MECHANIZM PŁYNNEGO PRZECIĄGANIA OKIENKA NA PILOCIE ---
         let isDraggingBox = false;
         const posArea = document.getElementById('posArea');
 
@@ -1398,11 +1405,10 @@
             const rect = posArea.getBoundingClientRect();
             let w = parseFloat(document.getElementById('winW').value);
             let h = parseFloat(document.getElementById('winH').value);
-            
+
             let clientX = e.clientX;
             let clientY = e.clientY;
-            
-            // Obsługa dotyku na smartfonach
+
             if (e.touches && e.touches.length > 0) {
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
@@ -1419,16 +1425,14 @@
             updateWinPreview();
         }
 
-        // Eventy dla myszki (PC)
         posArea.addEventListener('mousedown', (e) => { isDraggingBox = true; handlePosEvent(e); });
         window.addEventListener('mousemove', (e) => { if (isDraggingBox) handlePosEvent(e); });
         window.addEventListener('mouseup', () => { isDraggingBox = false; });
 
-        // Eventy dla palca (Telefon)
-        posArea.addEventListener('touchstart', (e) => { isDraggingBox = true; handlePosEvent(e); }, {passive: false});
-        window.addEventListener('touchmove', (e) => { 
-            if (isDraggingBox) { e.preventDefault(); handlePosEvent(e); } 
-        }, {passive: false});
+        posArea.addEventListener('touchstart', (e) => { isDraggingBox = true; handlePosEvent(e); }, { passive: false });
+        window.addEventListener('touchmove', (e) => {
+            if (isDraggingBox) { e.preventDefault(); handlePosEvent(e); }
+        }, { passive: false });
         window.addEventListener('touchend', () => { isDraggingBox = false; });
 
         function autoFitWindow() {
@@ -1437,7 +1441,13 @@
             const imgUrl = document.getElementById('ovImg').value.trim();
             const textVal = document.getElementById('ovText').value.trim();
             const tvAspectStr = document.getElementById('tvAspect').value.split('/');
-            const screenRatio = parseFloat(tvAspectStr[0]) / parseFloat(tvAspectStr[1]);
+            
+            let screenRatio = parseFloat(tvAspectStr[0]) / parseFloat(tvAspectStr[1]);
+
+            const ytFixCheckbox = document.getElementById('ytFix');
+            if (ytFixCheckbox && ytFixCheckbox.checked) {
+                screenRatio = 16 / 7.5; 
+            }
 
             let currentW = parseFloat(wInput.value) || 30;
             const hasText = textVal !== '';
@@ -1451,16 +1461,18 @@
                     if (natW === 0 || natH === 0) return;
 
                     const imgRatio = natW / natH;
-                    let perfectH = currentW * (screenRatio / imgRatio);
+                    
+                    let imgPerfectH = currentW * (screenRatio / imgRatio);
+                    let perfectH = imgPerfectH;
 
                     if (hasText) {
-                        perfectH += 20; // +20% wysokości na tekst
+                        perfectH = imgPerfectH / 0.60; 
                     }
 
                     if (perfectH > 100) {
                         perfectH = 100;
-                        let hForImg = hasText ? 80 : 100;
-                        currentW = hForImg * (imgRatio / screenRatio);
+                        let maxAvailableImgH = hasText ? 60 : 100; 
+                        currentW = maxAvailableImgH * (imgRatio / screenRatio);
                         wInput.value = currentW.toFixed(1);
                     }
                     
@@ -1470,11 +1482,9 @@
                 };
                 img.src = imgUrl;
             } else if (hasText) {
-                let perfectH = currentW / screenRatio; // kwadrat proporcjonalny
+                let perfectH = (currentW * screenRatio) * 0.4; 
                 if (perfectH > 100) {
                     perfectH = 100;
-                    currentW = 100 * screenRatio;
-                    wInput.value = currentW.toFixed(1);
                 }
                 hInput.value = perfectH.toFixed(1);
                 updateWinPreview();
@@ -1482,19 +1492,52 @@
             }
         }
 
-        function sendOverlay(active, target) {
+        // ==========================================
+        // GŁÓWNA FUNKCJA WYSYŁAJĄCA GRAFIKI (TARCZA 4.0)
+        // ==========================================
+        function sendOverlay(active, target, isNew = false) {
             const user = auth.currentUser;
             if (!user) { location.reload(); return; }
 
+            // Generujemy NOWE unikalne ID warstwy TYLKO gdy user kliknie "Dodaj obok" (isNew == true)
+            if (target === 'tv' && isNew) {
+                currentTvOverlayId = 'tv_layer_' + Date.now();
+            }
+            if (target === 'roboczy' && isNew) {
+                currentRoboczyId = 'roboczy_layer_' + Date.now();
+            }
+
             const payload = {
-                active: active, text: document.getElementById('ovText').value.trim(), textColor: document.getElementById('ovTextColor').value,
-                textBlink: document.getElementById('ovTextBlink').checked, imageUrl: document.getElementById('ovImg').value.trim(),
-                win: { mode: document.getElementById('tvWindowMode').value, w: parseInt(document.getElementById('winW').value), h: parseInt(document.getElementById('winH').value), x: relX, y: relY }
+                // To jest ID konkretnej grafiki (warstwy)
+                id: target === 'tv' ? currentTvOverlayId : currentRoboczyId, 
+                
+                // PRZEKAZUJEMY FLAGĘ DO ROZSZERZENIA
+                // Dzięki temu rozszerzenie może sprawdzić: 
+                // if(msg.value.payload.isNewLayer) { dodaj nowy element } else { zaktualizuj stary }
+                isNewLayer: isNew, 
+                
+                active: active, 
+                text: document.getElementById('ovText').value.trim(), 
+                textColor: document.getElementById('ovTextColor').value,
+                textBlink: document.getElementById('ovTextBlink').checked, 
+                imageUrl: document.getElementById('ovImg').value.trim(),
+                win: { 
+                    mode: document.getElementById('tvWindowMode').value, 
+                    w: parseInt(document.getElementById('winW').value), 
+                    h: parseInt(document.getElementById('winH').value), 
+                    x: relX, 
+                    y: relY 
+                }
             };
 
-            if (target === 'roboczy') sendCmd('custom_overlay', payload);
-            else if (target === 'tv') {
-                if (active) { const overlayId = Date.now().toString(); sendCmd('tv_overlay_open', { id: overlayId, payload: payload }); }
+            if (target === 'roboczy') {
+                // Wysyłamy na ekran laptopa (iSing/YouTube)
+                sendCmd('custom_overlay', payload);
+            } else if (target === 'tv') {
+                // TV z zasady operuje "oknem" a nie "zakładką przeglądarki"
+                // Używamy zawsze stałego ID okna: 'tv_main_window', aby przeglądarka NIE otwierała nam nowych okien.
+                // Natomiast ID *samej warstwy* przesyłamy zaszyte w środku payloadu.
+                sendCmd('tv_overlay_open', { id: 'tv_main_window', payload: payload }); 
             }
             if (navigator.vibrate) navigator.vibrate(20);
         }
@@ -1565,7 +1608,7 @@
         }
 
         // ==========================================
-        // 📸 LOGIKA PODGLĄDU EKRANÓW (ZRZUTY) Z BEZPIECZNYM FILTROWANIEM
+        // 📸 LOGIKA PODGLĄDU EKRANÓW
         // ==========================================
         function requestScreenshot() {
             document.getElementById('screenshotModal').style.display = 'flex';
@@ -1580,15 +1623,14 @@
             if (navigator.vibrate) navigator.vibrate(30);
         }
 
-        // Nasłuchiwanie na paczkę ze zrzutami z Firebase i budowanie "Czystego Podzielonego Pulpitu"
         db.ref('remote_screenshot').on('value', snap => {
             const data = snap.val();
             if (!data || !data.images) return;
-            
+
             const gallery = document.getElementById('screenshotGallery');
             if (gallery && document.getElementById('screenshotModal').style.display === 'flex') {
                 gallery.innerHTML = '';
-                
+
                 const validImages = data.images.filter(img => img.bounds);
 
                 if (validImages.length === 0) {
@@ -1596,9 +1638,8 @@
                     return;
                 }
 
-                // Pobieranie informacji o monitorach lub tworzenie awaryjnego obszaru
                 const displays = data.displays || [{
-                    id: "Wirtualny", 
+                    id: "Wirtualny",
                     bounds: {
                         left: Math.min(...validImages.map(img => img.bounds.left)),
                         top: Math.min(...validImages.map(img => img.bounds.top)),
@@ -1607,14 +1648,11 @@
                     }
                 }];
 
-                // Sortowanie ekranów od lewej do prawej
                 displays.sort((a, b) => a.bounds.left - b.bounds.left);
 
                 let workspaceHTML = '';
 
                 displays.forEach((display, index) => {
-                    
-                    // Filtrowanie okien dla danego monitora na podstawie ich środka geometrycznego
                     const displayImages = validImages.filter(img => {
                         const centerX = img.bounds.left + (img.bounds.width / 2);
                         const centerY = img.bounds.top + (img.bounds.height / 2);
@@ -1626,7 +1664,6 @@
                         );
                     });
 
-                    // Pomijamy puste ekrany
                     if (displayImages.length === 0) return;
 
                     const ratio = display.bounds.width / display.bounds.height;
@@ -1639,22 +1676,20 @@
                             
                             <div style="position: relative; width: 100%; aspect-ratio: ${ratio}; background: #000; border: 1px solid #444; overflow: hidden;">
                                 ${displayImages.map(img => {
-                                    // Pozycja okna wewnątrz wybranego monitora
-                                    const left = ((img.bounds.left - display.bounds.left) / display.bounds.width) * 100;
-                                    const top = ((img.bounds.top - display.bounds.top) / display.bounds.height) * 100;
-                                    const width = (img.bounds.width / display.bounds.width) * 100;
-                                    const height = (img.bounds.height / display.bounds.height) * 100;
-                                    
-                                    const zIdx = img.zIndex || 1;
+                        const left = ((img.bounds.left - display.bounds.left) / display.bounds.width) * 100;
+                        const top = ((img.bounds.top - display.bounds.top) / display.bounds.height) * 100;
+                        const width = (img.bounds.width / display.bounds.width) * 100;
+                        const height = (img.bounds.height / display.bounds.height) * 100;
+                        const zIdx = img.zIndex || 1;
 
-                                    return `
+                        return `
                                     <div style="position: absolute; left: ${left}%; top: ${top}%; width: ${width}%; height: ${height}%; box-sizing: border-box; border: 1px solid #03dac6; background: #111; overflow: hidden; z-index: ${zIdx}; box-shadow: 0 4px 15px rgba(0,0,0,0.8);">
                                         <div style="width: 100%; height: 100%; position: relative;">
                                             <img src="${img.dataUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill;">
                                         </div>
                                     </div>
                                     `;
-                                }).join('')}
+                    }).join('')}
                             </div>
                         </div>
                     `;
@@ -1672,4 +1707,5 @@
         });
     </script>
 </body>
+
 </html>
