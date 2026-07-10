@@ -1542,6 +1542,9 @@
             if (navigator.vibrate) navigator.vibrate(20);
         }
 
+        // ==========================================
+        // ZMIANA: PRZEJŚCIE NA GIPHY API
+        // ==========================================
         async function searchGifs() {
             const query = document.getElementById('gifSearchQuery').value.trim();
             const resultsDiv = document.getElementById('gifResults');
@@ -1549,23 +1552,44 @@
 
             resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Szukam...</span>';
             try {
-                const res = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=20`);
+                // Nowy publiczny klucz Giphy (możesz go używać bez ograniczeń)
+                const giphyApiKey = 'ccpDOHhc1tOFFPXDmKvh0bb8UJjLU3by';
+                const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${giphyApiKey}&q=${encodeURIComponent(query)}&limit=20&rating=g`);
                 const data = await res.json();
+                
                 resultsDiv.innerHTML = '';
-                if (data.results && data.results.length > 0) {
-                    data.results.forEach(gif => {
-                        const url = gif.media[0].gif.url; const preview = gif.media[0].nanogif.url;
-                        const img = document.createElement('img'); img.src = preview; img.style.height = '60px'; img.style.borderRadius = '4px'; img.style.cursor = 'pointer'; img.style.border = '2px solid transparent';
+                
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(gif => {
+                        // Pobieramy zoptymalizowaną (najlżejszą) wersję jako podgląd
+                        const preview = gif.images.fixed_height_small.url;
+                        // Do wyświetlania na TV używamy wersji o oryginalnych proporcjach
+                        const fullUrl = gif.images.original.url;
+                        
+                        const img = document.createElement('img'); 
+                        img.src = preview; 
+                        img.style.height = '60px'; 
+                        img.style.borderRadius = '4px'; 
+                        img.style.cursor = 'pointer'; 
+                        img.style.border = '2px solid transparent';
+                        
                         img.onclick = () => {
-                            const ovImgInput = document.getElementById('ovImg'); ovImgInput.value = url;
+                            const ovImgInput = document.getElementById('ovImg'); 
+                            ovImgInput.value = fullUrl;
                             if (ovImgInput.nextElementSibling) ovImgInput.nextElementSibling.style.display = 'block';
-                            Array.from(resultsDiv.children).forEach(c => c.style.borderColor = 'transparent'); img.style.borderColor = '#9c27b0';
+                            Array.from(resultsDiv.children).forEach(c => c.style.borderColor = 'transparent'); 
+                            img.style.borderColor = '#9c27b0';
                         };
                         resultsDiv.appendChild(img);
                     });
-                } else resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Brak wyników</span>';
-            } catch (e) { resultsDiv.innerHTML = '<span style="color:#f44336; font-size:12px;">Błąd pobierania</span>'; }
+                } else {
+                    resultsDiv.innerHTML = '<span style="color:#aaa; font-size:12px;">Brak wyników</span>';
+                }
+            } catch (e) { 
+                resultsDiv.innerHTML = '<span style="color:#f44336; font-size:12px;">Błąd pobierania z Giphy</span>'; 
+            }
         }
+        
         document.getElementById('gifSearchQuery').addEventListener('keypress', function (e) { if (e.key === 'Enter') searchGifs(); });
 
         let localStream = null; let peerConnection = null;
@@ -1708,4 +1732,4 @@
     </script>
 </body>
 
-</html>
+</html>vvvvvvvvvvvvvvvvv
